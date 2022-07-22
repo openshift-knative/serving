@@ -6,6 +6,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.1-0.20210609063737-0067dc6dcea2
 	github.com/c2h5oh/datasize v0.0.0-20200112174442-28bbd4740fee // indirect
 	github.com/davecgh/go-spew v1.1.1
+	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/go-cmp v0.5.7
 	github.com/google/go-containerregistry v0.8.1-0.20220414143355-892d7a808387
@@ -44,6 +45,9 @@ require (
 )
 
 replace (
+	// Enforce a version for CVE-2022-1996
+	github.com/emicklei/go-restful => github.com/emicklei/go-restful/v3 v3.8.0
+
 	k8s.io/api => k8s.io/api v0.22.5
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.22.5
 	k8s.io/apimachinery => k8s.io/apimachinery v0.22.5
