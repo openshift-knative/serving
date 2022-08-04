@@ -35,9 +35,6 @@ function download_serving {
     target_file="$target_dir/$index-$file"
 
     url="https://github.com/knative/$component/releases/download/knative-$release_suffix/$file"
-    if [[ "$version" == "ci" ]]; then
-      url="https://storage.googleapis.com/knative-nightly/$component/latest/$file"
-    fi
     wget --no-check-certificate "$url" -O "$target_file"
   done
 }
