@@ -74,7 +74,7 @@ const (
 type config struct {
 	ContainerConcurrency     int    `split_words:"true" required:"true"`
 	QueueServingPort         string `split_words:"true" required:"true"`
-	QueueServingTLSPort      string `split_words:"true" required:"true"`
+	QueueServingTLSPort      string `split_words:"true"` // optional
 	UserPort                 string `split_words:"true" required:"true"`
 	RevisionTimeoutSeconds   int    `split_words:"true" required:"true"`
 	MaxDurationSeconds       int    `split_words:"true"` // optional
