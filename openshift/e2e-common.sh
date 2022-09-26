@@ -237,7 +237,7 @@ EOF
   wait_until_hostname_resolves "$(kubectl get svc -n $SERVING_INGRESS_NAMESPACE kourier -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
 
   # TODO: Only one cluster enables internal-tls but it should be enabled by default when the feature is stable.
-  if [[ ${ENABLE_INTERNAL_TLS} == "true" ]]; then
+  if [[ ${ENABLE_INTERNAL_TLS:-} == "true" ]]; then
     oc patch knativeserving knative-serving \
         -n "${SERVING_NAMESPACE}" \
         --type merge --patch '{"spec": {"config": {"network": {"internal-encryption": "true"}}}}'
