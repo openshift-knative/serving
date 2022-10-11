@@ -229,6 +229,13 @@ spec:
       logging.enable-request-log: "true"
 EOF
 
+  # Wait for 4 pods to appear first
+  timeout 600 '[[ $(oc get pods -n $SERVING_NAMESPACE --no-headers | wc -l) -lt 4 ]]' || return 1
+  wait_until_pods_running $SERVING_NAMESPACE || return 1
+
+  wait_until_service_has_external_ip $SERVING_INGRESS_NAMESPACE kourier || fail_test "Ingress has no external IP"
+  wait_until_hostname_resolves "$(kubectl get svc -n $SERVING_INGRESS_NAMESPACE kourier -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+
   # TODO: Only one cluster enables internal-tls but it should be enabled by default when the feature is stable.
   if [[ ${ENABLE_INTERNAL_TLS:-} == "true" ]]; then
     oc patch knativeserving knative-serving \
@@ -245,13 +252,6 @@ EOF
     oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} activator
     echo "internal-encryption is enabled"
   fi
-
-  # Wait for 4 pods to appear first
-  timeout 600 '[[ $(oc get pods -n $SERVING_NAMESPACE --no-headers | wc -l) -lt 4 ]]' || return 1
-  wait_until_pods_running $SERVING_NAMESPACE || return 1
-
-  wait_until_service_has_external_ip $SERVING_INGRESS_NAMESPACE kourier || fail_test "Ingress has no external IP"
-  wait_until_hostname_resolves "$(kubectl get svc -n $SERVING_INGRESS_NAMESPACE kourier -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
 
   header "Knative Installed successfully"
 }
