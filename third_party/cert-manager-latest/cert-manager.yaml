@@ -5160,6 +5160,12 @@ spec:
                 fieldPath: metadata.namespace
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            capabilities:
+              drop:
+                - ALL
+
       nodeSelector:
         kubernetes.io/os: linux
 ---
@@ -5213,6 +5219,11 @@ spec:
             protocol: TCP
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            capabilities:
+              drop:
+                - ALL
           env:
           - name: POD_NAMESPACE
             valueFrom:
@@ -5288,6 +5299,11 @@ spec:
             failureThreshold: 3
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            capabilities:
+              drop:
+                - ALL
           env:
           - name: POD_NAMESPACE
             valueFrom:

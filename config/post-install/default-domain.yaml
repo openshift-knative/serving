@@ -61,6 +61,10 @@ spec:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
           runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
+
         env:
         - name: POD_NAME
           valueFrom:

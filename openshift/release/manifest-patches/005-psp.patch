@@ -1,0 +1,58 @@
+diff --git a/openshift/release/artifacts/2-serving-core.yaml b/openshift/release/artifacts/2-serving-core.yaml
+index abe895e01..88ff800ce 100644
+--- a/openshift/release/artifacts/2-serving-core.yaml
++++ b/openshift/release/artifacts/2-serving-core.yaml
+@@ -4978,7 +4978,7 @@ spec:
+             runAsNonRoot: true
+             capabilities:
+               drop:
+-                - all
++                - ALL
+           ports:
+             - name: metrics
+               containerPort: 9090
+@@ -5138,7 +5138,7 @@ spec:
+             runAsNonRoot: true
+             capabilities:
+               drop:
+-                - all
++                - ALL
+           ports:
+             - name: metrics
+               containerPort: 9090
+@@ -5268,7 +5268,7 @@ spec:
+             runAsNonRoot: true
+             capabilities:
+               drop:
+-                - all
++                - ALL
+           ports:
+             - name: metrics
+               containerPort: 9090
+@@ -5376,7 +5376,7 @@ spec:
+             runAsNonRoot: true
+             capabilities:
+               drop:
+-                - all
++                - ALL
+           ports:
+             - name: metrics
+               containerPort: 9090
+@@ -5470,7 +5470,7 @@ spec:
+             runAsNonRoot: true
+             capabilities:
+               drop:
+-                - all
++                - ALL
+           ports:
+             - name: metrics
+               containerPort: 9090
+@@ -5669,7 +5669,7 @@ spec:
+             runAsNonRoot: true
+             capabilities:
+               drop:
+-                - all
++                - ALL
+           ports:
+             - name: metrics
+               containerPort: 9090
