@@ -82,7 +82,8 @@ func TestBYOCertificate(t *testing.T) {
 	cert, key := makeCertificateForDomain(t, host)
 	secret, err := clients.KubeClient.CoreV1().Secrets(test.ServingFlags.TestNamespace).Create(ctx, &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: test.AppendRandomString("byocert-secret"),
+			Name:   test.AppendRandomString("byocert-secret"),
+			Labels: map[string]string{"networking.internal.knative.dev/certificate-uid": "byocert-secret"},
 		},
 		Type: corev1.SecretTypeTLS,
 		Data: map[string][]byte{
