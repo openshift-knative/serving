@@ -600,6 +600,7 @@ func PodSecurityContextMask(ctx context.Context, in *corev1.PodSecurityContext) 
 	out.RunAsNonRoot = in.RunAsNonRoot
 	out.FSGroup = in.FSGroup
 	out.SupplementalGroups = in.SupplementalGroups
+	out.SeccompProfile = in.SeccompProfile
 
 	// Disallowed
 	// This list is unnecessary, but added here for clarity
@@ -628,6 +629,10 @@ func SecurityContextMask(ctx context.Context, in *corev1.SecurityContext) *corev
 	// RunAsNonRoot when unset behaves the same way as false
 	// We do want the ability for folks to set this value to true
 	out.RunAsNonRoot = in.RunAsNonRoot
+
+	// SeccompProfile defaults to "unconstrained", but the safe values are
+	// "RuntimeDefault" or "Localhost" (with localhost path set)
+	out.SeccompProfile = in.SeccompProfile
 
 	// Disallowed
 	// This list is unnecessary, but added here for clarity
