@@ -55,8 +55,5 @@ git apply "${manifest_path}/002-openshift-serving-role.patch"
 # See also https://issues.redhat.com/browse/SRVKS-670.
 git apply "${manifest_path}/003-serving-pdb.patch"
 
-# Add internal-tls patch. The backport will conflict with the downloaded manifest.
-git apply "${manifest_path}/004-internal-tls.patch"
-
 # Add psp patch.
 git apply "${manifest_path}/005-psp.patch"

@@ -284,6 +284,7 @@ k8s.io/api/core/v1.SecurityContext:
     - ReadOnlyRootFilesystem
     - RunAsGroup
     - RunAsNonRoot
+    - AllowPrivilegeEscalation
     - RunAsUser
 k8s.io/api/core/v1.Capabilities:
   fieldMask:
