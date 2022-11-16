@@ -45,11 +45,12 @@ git commit -m ":robot: Triggering CI on branch '${REPO_BRANCH}' after synching t
 git push -f openshift ${REPO_BRANCH_CI}
 
 if hash hub 2>/dev/null; then
-   # Test if there is already a sync PR in 
+   # Test if there is already a sync PR in
+   message=":robot: Triggering CI on branch '${REPO_BRANCH}' after synching to upstream/main"
    COUNT=$(hub api -H "Accept: application/vnd.github.v3+json" repos/${REPO_OWNER_NAME}/${REPO_NAME}/pulls --flat \
-    | grep -c ":robot: Triggering CI on branch '${REPO_BRANCH}' after synching to upstream/main") || true
+    | grep -c "${message}") || true
    if [ "$COUNT" = "0" ]; then
-      hub pull-request --no-edit -l "kind/sync-fork-to-upstream" -b ${REPO_OWNER_NAME}/${REPO_NAME}:${REPO_BRANCH} -h ${REPO_OWNER_NAME}/${REPO_NAME}:${REPO_BRANCH_CI}
+      hub pull-request -m "${message}" -l "kind/sync-fork-to-upstream" -b ${REPO_OWNER_NAME}/${REPO_NAME}:${REPO_BRANCH} -h ${REPO_OWNER_NAME}/${REPO_NAME}:${REPO_BRANCH_CI}
    fi
 else
    echo "hub (https://github.com/github/hub) is not installed, so you'll need to create a PR manually."
