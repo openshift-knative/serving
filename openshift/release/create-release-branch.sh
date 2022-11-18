@@ -11,13 +11,18 @@ target=$2
 git fetch upstream --tags
 git checkout -b "$target" "$release"
 
+# Remove GH Action hooks from upstream
+rm -rf .github/workflows
+git commit -sm ":fire: remove unneeded workflows" .github/
+
 # Copy the openshift extra files from the OPENSHIFT/main branch.
 git fetch openshift main
-git checkout openshift/main -- openshift OWNERS_ALIASES OWNERS Makefile
+git checkout openshift/main -- .github/workflows openshift OWNERS_ALIASES OWNERS Makefile
+
 make generate-dockerfiles
 make RELEASE=$release generate-release
 make RELEASE=ci generate-release
-git add openshift OWNERS_ALIASES OWNERS Makefile
+git add .github/workflows openshift OWNERS_ALIASES OWNERS Makefile
 git commit -m "Add openshift specific files."
 
 # Apply patches .
