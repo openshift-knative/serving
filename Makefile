@@ -4,12 +4,10 @@ CGO_ENABLED=0
 GOOS=linux
 CORE_IMAGES=./cmd/activator ./cmd/autoscaler ./cmd/autoscaler-hpa ./cmd/controller ./cmd/queue ./cmd/webhook ./vendor/knative.dev/pkg/apiextensions/storageversion/cmd/migrate ./cmd/domain-mapping ./cmd/domain-mapping-webhook
 TEST_IMAGES=$(shell find ./test/test_images ./test/test_images/multicontainer -mindepth 1 -maxdepth 1 -type d)
-TEST_IMAGE_TAG=latest
-DOCKER_REPO_OVERRIDE=
-KO_FLAGS=
 BRANCH=
 TEST=
 IMAGE=
+TEST_IMAGE_TAG ?= latest
 
 # Guess location of openshift/release repo. NOTE: override this if it is not correct.
 OPENSHIFT=${CURDIR}/../../github.com/openshift/release
@@ -34,13 +32,16 @@ test-e2e-tls:
 	ENABLE_INTERNAL_TLS="true" ./openshift/e2e-tests.sh
 .PHONY: test-e2e-tls
 
+# Target used by github actions.
 test-images:
 	for img in $(TEST_IMAGES); do \
-		KO_DOCKER_REPO=$(DOCKER_REPO_OVERRIDE) ko resolve --tags=$(TEST_IMAGE_TAG) $(KO_FLAGS) -RBf $$img ; \
+		KO_DOCKER_REPO=$(DOCKER_REPO_OVERRIDE) ko build --tags=$(TEST_IMAGE_TAG) $(KO_FLAGS) -B $$img || \
+		KO_DOCKER_REPO=$(DOCKER_REPO_OVERRIDE) ko resolve --tags=$(TEST_IMAGE_TAG) $(KO_FLAGS) -RBf $$img || exit $?; \
 	done
 .PHONY: test-images
 
 test-image-single:
+	KO_DOCKER_REPO=$(DOCKER_REPO_OVERRIDE) ko build --tags=$(TEST_IMAGE_TAG) $(KO_FLAGS) -B test/test_images/$(IMAGE) || \
 	KO_DOCKER_REPO=$(DOCKER_REPO_OVERRIDE) ko resolve --tags=$(TEST_IMAGE_TAG) $(KO_FLAGS) -RBf test/test_images/$(IMAGE)
 .PHONY: test-image-single
 
