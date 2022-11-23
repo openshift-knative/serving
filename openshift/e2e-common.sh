@@ -206,7 +206,7 @@ function install_knative(){
 
   # Install Knative Serving with initial values in test/config/config-observability.yaml.
   cat <<-EOF | oc apply -f - || return $?
-apiVersion: operator.knative.dev/v1alpha1
+apiVersion: operator.knative.dev/v1beta1
 kind: KnativeServing
 metadata:
   name: knative-serving
