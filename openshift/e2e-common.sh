@@ -214,7 +214,7 @@ metadata:
 spec:
   ingress:
     kourier:
-      service-type: "LoadBalancer" # To enable gRPC and HTTP2 tests.
+      service-type: "LoadBalancer" # To enable gRPC and HTTP2 tests without OCP Route.
   config:
     deployment:
       progressDeadline: "120s"
@@ -300,7 +300,7 @@ function prepare_knative_serving_tests_nightly {
 function run_e2e_tests(){
   header "Running tests"
 
-  local test_name=$1 
+  local test_name=$1
   local failed=0
 
   # Keep this in sync with test/ha/ha.go
@@ -345,7 +345,7 @@ function run_e2e_tests(){
 
   if [[ $(oc get infrastructure cluster -ojsonpath='{.status.platform}') = VSphere ]]; then
     # Since we don't have LoadBalancers working, gRPC tests will always fail.
-    rm ./test/e2e/grpc_test.go
+    mv ./test/e2e/grpc_test.go /tmp/grpc_test.go
     parallel=2
   fi
 
@@ -458,6 +458,42 @@ function run_e2e_tests(){
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=3
+
+  # Test gRPC via OpenShift Route.
+  # * OCP Route does not work with websocket when enabling default-enable-http2. It will be fixed in the next haproxy version (OCP 4.12 or 4.13).
+  # * Also, Skip 4.9, 4.8 job as OCP option for gRPC/HTTP2 is available since 4.10 - bz#1826225
+  if [[ ${JOB_NAME} =~ "48" ]] || [[ ${JOB_NAME} =~ "49" ]]; then
+        echo "skip gRPC test via OCP"
+        return $failed
+  fi
+
+  echo "gRPC test via OCP"
+
+  oc annotate ingresses.config/cluster ingress.operator.openshift.io/default-enable-http2=true
+  oc annotate knativeserving knative-serving -n knative-serving serverless.openshift.io/default-enable-http2=true
+
+  # This is not necessary actually but it makes usre that access passes through OCP route.
+  oc patch knativeserving knative-serving \
+      -n "${SERVING_NAMESPACE}" \
+      --type merge --patch '{"spec": {"ingress": {"kourier": {"service-type": "ClusterIP"}}}}'
+
+  if [[ $(oc get infrastructure cluster -ojsonpath='{.status.platform}') = VSphere ]]; then
+    # Revert grpc_test.go evacuated above.
+    mv /tmp/grpc_test.go ./test/e2e/grpc_test.go
+    parallel=2
+  fi
+
+  # Revert gRPC patch.
+  git apply -R ./openshift/patches/004-grpc.patch
+
+  # Run test with the prefix "TestGRPC".
+  go_test_e2e -timeout=10m ./test/e2e -parallel=1 \
+    -run "TestGRPC" \
+    --kubeconfig "$KUBECONFIG" \
+    --imagetemplate "$TEST_IMAGE_TEMPLATE" \
+    --https \
+    --skip-cleanup-on-fail \
+    --resolvabledomain || failed=1
 
   return $failed
 }
