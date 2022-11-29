@@ -16,6 +16,10 @@ openshift/release/mirror-upstream-branches.sh
 git fetch upstream main
 git checkout upstream/main -B ${REPO_BRANCH}
 
+# Remove GH Action hooks from upstream
+rm -rf .github/workflows
+git commit -sm ":fire: remove unneeded workflows" .github/
+
 # Update openshift's main and take all needed files from there.
 git fetch openshift main
 git checkout openshift/main openshift OWNERS_ALIASES OWNERS Makefile
