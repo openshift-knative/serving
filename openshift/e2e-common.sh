@@ -472,7 +472,7 @@ function run_e2e_tests(){
   oc annotate ingresses.config/cluster ingress.operator.openshift.io/default-enable-http2=true
   oc annotate knativeserving knative-serving -n knative-serving serverless.openshift.io/default-enable-http2=true
 
-  # This is not necessary actually but it makes usre that access passes through OCP route.
+  # This is not necessary actually but it makes sure that access passes through OCP route.
   oc patch knativeserving knative-serving \
       -n "${SERVING_NAMESPACE}" \
       --type merge --patch '{"spec": {"ingress": {"kourier": {"service-type": "ClusterIP"}}}}'
