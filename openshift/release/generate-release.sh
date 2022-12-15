@@ -20,4 +20,4 @@ resolve_resources "config/post-install/storage-version-migration.yaml"         "
 # Generate a single yaml for the CI.
 release=$1
 output_file="openshift/release/knative-serving-${release}.yaml"
-resolve_resources "$YAML_OUTPUT_DIR" "$output_file"
+cat "$YAML_OUTPUT_DIR"/* > "$output_file"
