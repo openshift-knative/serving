@@ -6,6 +6,10 @@ source $(dirname $0)/resolve.sh
 
 readonly YAML_OUTPUT_DIR="openshift/release/artifacts/"
 
+# Clean up 
+rm -rf "$YAML_OUTPUT_DIR"
+mkdir -p "$YAML_OUTPUT_DIR"
+
 readonly SERVING_CRD_YAML=${YAML_OUTPUT_DIR}/1-serving-crds.yaml
 readonly SERVING_CORE_YAML=${YAML_OUTPUT_DIR}/2-serving-core.yaml
 readonly SERVING_HPA_YAML=${YAML_OUTPUT_DIR}/3-serving-hpa.yaml
