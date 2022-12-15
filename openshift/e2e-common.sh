@@ -201,7 +201,7 @@ function install_catalogsource(){
 
 function install_knative(){
   header "Installing Knative"
-  export KNATIVE_SERVING_TEST_MANIFESTS_DIR="${root}/artifacts"
+  export KNATIVE_SERVING_TEST_MANIFESTS_DIR="${root}/release/artifacts"
   install_catalogsource || return $?
   create_configmaps || return $?
   deploy_serverless_operator "$CURRENT_CSV" || return $?
