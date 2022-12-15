@@ -16,8 +16,3 @@ resolve_resources "config/core/300-resources/ config/core/300-imagecache.yaml" "
 resolve_resources "config/core/"                                               "$SERVING_CORE_YAML"
 resolve_resources "config/hpa-autoscaling/"                                    "$SERVING_HPA_YAML"
 resolve_resources "config/post-install/storage-version-migration.yaml"         "$SERVING_POST_INSTALL_JOBS_YAML"
-
-# Generate a single yaml for the CI.
-release=$1
-output_file="openshift/release/knative-serving-${release}.yaml"
-cat "$YAML_OUTPUT_DIR"/* > "$output_file"

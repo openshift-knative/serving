@@ -267,7 +267,7 @@ function create_configmaps(){
 
   # Create eventing manifest. We don't want to do this, but upstream designed that knative-eventing dir is mandatory
   # when KO_DATA_PATH was overwritten.
-  oc create configmap ko-data-eventing -n $OPERATORS_NAMESPACE --from-file="${KNATIVE_SERVING_TEST_MANIFESTS_DIR}/knative-eventing-ci.yaml" || return $?
+  oc create configmap ko-data-eventing -n $OPERATORS_NAMESPACE --from-file="${root}/release/knative-eventing-ci.yaml" || return $?
 }
 
 function prepare_knative_serving_tests_nightly {
