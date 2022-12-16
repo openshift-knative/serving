@@ -3,19 +3,21 @@
 function resolve_resources(){
   local dir=$1
   local resolved_file_name=$2
+  local version=$2
 
   echo "Writing resolved yaml to $resolved_file_name"
 
   > "$resolved_file_name"
 
   for yaml in `find $dir -name "*.yaml" | sort`; do
-    resolve_file "$yaml" "$resolved_file_name"
+    resolve_file "$yaml" "$resolved_file_name" "$version"
   done
 }
 
 function resolve_file() {
   local file=$1
   local to=$2
+  local version=$3
 
   echo "---" >> "$to"
   # 1. Rewrite image references
