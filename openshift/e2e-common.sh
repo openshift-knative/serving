@@ -113,8 +113,7 @@ function update_csv(){
   export KNATIVE_KOURIER_GATEWAY=$(grep -w "docker.io/maistra/proxyv2-ubi8" $SERVING_DIR/third_party/kourier-latest/kourier.yaml  | awk '{print $NF}')
   local CSV="olm-catalog/serverless-operator/manifests/serverless-operator.clusterserviceversion.yaml"
 
-  # release-next branch keeps updating the latest manifest in knative-serving-ci.yaml for serving resources.
-  # see: https://github.com/openshift/knative-serving/blob/release-next/openshift/release/knative-serving-ci.yaml
+  # release-next branch keeps updating the latest manifest in openshift/release/artifacts/ for serving resources.
   # So mount the manifest and use it by KO_DATA_PATH env value.
 
   cat << EOF | yq write --inplace --script - $CSV || return $?
@@ -135,8 +134,14 @@ function update_csv(){
     configMap:
       name: "ko-data-serving"
       items:
-        - key: "knative-serving-ci.yaml"
-          path: "knative-serving-ci.yaml"
+        - key: "1-serving-crds.yaml"
+          path: "1-serving-crds.yaml"
+        - key: "2-serving-core.yaml"
+          path: "2-serving-core.yaml"
+        - key: "3-serving-hpa.yaml"
+          path: "3-serving-hpa.yaml"
+        - key: "4-serving-post-install-jobs.yaml"
+          path: "4-serving-post-install-jobs.yaml"
 # eventing
 - command: update
   path: spec.install.spec.deployments.(name==knative-operator-webhook).spec.template.spec.containers.(name==knative-operator).volumeMounts[+]
@@ -196,7 +201,7 @@ function install_catalogsource(){
 
 function install_knative(){
   header "Installing Knative"
-  export KNATIVE_SERVING_TEST_MANIFESTS_DIR="${root}/release"
+  export KNATIVE_SERVING_TEST_MANIFESTS_DIR="${root}/release/artifacts"
   install_catalogsource || return $?
   create_configmaps || return $?
   deploy_serverless_operator "$CURRENT_CSV" || return $?
@@ -258,11 +263,11 @@ EOF
 
 function create_configmaps(){
   # Create configmap to use the latest manifest.
-  oc create configmap ko-data-serving -n $OPERATORS_NAMESPACE --from-file="${KNATIVE_SERVING_TEST_MANIFESTS_DIR}/knative-serving-ci.yaml" || return $?
+  oc create configmap ko-data-serving -n $OPERATORS_NAMESPACE --from-file="${KNATIVE_SERVING_TEST_MANIFESTS_DIR}" || return $?
 
   # Create eventing manifest. We don't want to do this, but upstream designed that knative-eventing dir is mandatory
   # when KO_DATA_PATH was overwritten.
-  oc create configmap ko-data-eventing -n $OPERATORS_NAMESPACE --from-file="${KNATIVE_SERVING_TEST_MANIFESTS_DIR}/knative-eventing-ci.yaml" || return $?
+  oc create configmap ko-data-eventing -n $OPERATORS_NAMESPACE --from-file="${root}/release/knative-eventing-ci.yaml" || return $?
 }
 
 function prepare_knative_serving_tests_nightly {
