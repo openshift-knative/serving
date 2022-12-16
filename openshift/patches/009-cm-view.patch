@@ -1,11 +1,10 @@
-diff --git a/openshift/release/artifacts/2-serving-core.yaml b/openshift/release/artifacts/2-serving-core.yaml
-index 4f7af33d..4a5ce15f 100644
---- a/openshift/release/artifacts/2-serving-core.yaml
-+++ b/openshift/release/artifacts/2-serving-core.yaml
-@@ -5935,3 +5935,27 @@ metadata:
- # The data is populated at install time.
-
- ---
+diff --git a/config/core/200-roles/config-map-view-downstream.yaml b/config/core/200-roles/config-map-view-downstream.yaml
+new file mode 100644
+index 000000000..91e329703
+--- /dev/null
++++ b/config/core/200-roles/config-map-view-downstream.yaml
+@@ -0,0 +1,25 @@
++# Extra role for downstream, so that users can get the autoscaling CM to fetch defaults.
 +kind: Role
 +apiVersion: rbac.authorization.k8s.io/v1
 +metadata:
