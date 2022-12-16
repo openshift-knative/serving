@@ -3,7 +3,7 @@
 function resolve_resources(){
   local dir=$1
   local resolved_file_name=$2
-  local version=$2
+  local version=$3
 
   echo "Writing resolved yaml to $resolved_file_name"
 
@@ -24,7 +24,7 @@ function resolve_file() {
   # 2. Update config map entry
   # 3. Replace serving.knative.dev/release label.
   # 4. Remove seccompProfile.
-  sed -e "s+app.kubernetes.io/version: devel+app.kubernetes.io/version: \"v1.2.0\"+" \
+  sed -e "s+app.kubernetes.io/version: devel+app.kubernetes.io/version: \""$version"\"+" \
       -e "s+seccompProfile:++" \
       -e "s+type: RuntimeDefault++" \
       "$file" >> "$to"
