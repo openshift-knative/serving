@@ -100,143 +100,37 @@ function timeout() {
   return 0
 }
 
-function update_csv(){
-  local SERVING_DIR=$1
-
-  source ./hack/lib/metadata.bash
-  local SERVING_VERSION=$(metadata.get dependencies.serving)
-  local EVENTING_VERSION=$(metadata.get dependencies.eventing)
-  local KOURIER_VERSION=$(metadata.get dependencies.kourier)
-  local KOURIER_MINOR_VERSION=${KOURIER_VERSION%.*}    # e.g. "0.21.0" => "0.21"
-
-  export KNATIVE_KOURIER_CONTROL="registry.ci.openshift.org/openshift/knative-v${KOURIER_VERSION}:kourier"
-  export KNATIVE_KOURIER_GATEWAY=$(grep -w "docker.io/maistra/proxyv2-ubi8" $SERVING_DIR/third_party/kourier-latest/kourier.yaml  | awk '{print $NF}')
-  local CSV="olm-catalog/serverless-operator/manifests/serverless-operator.clusterserviceversion.yaml"
-
-  # release-next branch keeps updating the latest manifest in openshift/release/artifacts/ for serving resources.
-  # So mount the manifest and use it by KO_DATA_PATH env value.
-
-  cat << EOF | yq write --inplace --script - $CSV || return $?
-- command: update
-  path: spec.install.spec.deployments.(name==knative-operator-webhook).spec.template.spec.containers.(name==knative-operator).env[+]
-  value:
-    name: "KO_DATA_PATH"
-    value: "/tmp/knative/"
-- command: update
-  path: spec.install.spec.deployments.(name==knative-operator-webhook).spec.template.spec.containers.(name==knative-operator).volumeMounts[+]
-  value:
-    name: "serving-manifest"
-    mountPath: "/tmp/knative/knative-serving/${SERVING_VERSION}"
-- command: update
-  path: spec.install.spec.deployments.(name==knative-operator-webhook).spec.template.spec.volumes[+]
-  value:
-    name: "serving-manifest"
-    configMap:
-      name: "ko-data-serving"
-      items:
-        - key: "1-serving-crds.yaml"
-          path: "1-serving-crds.yaml"
-        - key: "2-serving-core.yaml"
-          path: "2-serving-core.yaml"
-        - key: "3-serving-hpa.yaml"
-          path: "3-serving-hpa.yaml"
-        - key: "4-serving-post-install-jobs.yaml"
-          path: "4-serving-post-install-jobs.yaml"
-# eventing
-- command: update
-  path: spec.install.spec.deployments.(name==knative-operator-webhook).spec.template.spec.containers.(name==knative-operator).volumeMounts[+]
-  value:
-    name: "eventing-manifest"
-    mountPath: "/tmp/knative/knative-eventing/${EVENTING_VERSION}"
-- command: update
-  path: spec.install.spec.deployments.(name==knative-operator-webhook).spec.template.spec.volumes[+]
-  value:
-    name: "eventing-manifest"
-    configMap:
-      name: "ko-data-eventing"
-      items:
-        - key: "knative-eventing-ci.yaml"
-          path: "knative-eventing-ci.yaml"
-# kourier
-- command: update
-  path: spec.install.spec.deployments.(name==knative-operator-webhook).spec.template.spec.containers.(name==knative-operator).volumeMounts[+]
-  value:
-    name: "kourier-manifest"
-    mountPath: "/tmp/knative/ingress/${KOURIER_MINOR_VERSION}"
-- command: update
-  path: spec.install.spec.deployments.(name==knative-operator-webhook).spec.template.spec.volumes[+]
-  value:
-    name: "kourier-manifest"
-    configMap:
-      name: "kourier-cm"
-      items:
-        - key: "kourier.yaml"
-          path: "kourier.yaml"
-EOF
-  cat ./openshift-knative-operator/cmd/operator/kodata/ingress/${KOURIER_MINOR_VERSION}/0-kourier.yaml \
-      ./openshift-knative-operator/cmd/operator/kodata/ingress/${KOURIER_MINOR_VERSION}/1-config-network.yaml > /tmp/kourier.yaml
-
-  oc create configmap kourier-cm -n $OPERATORS_NAMESPACE --from-file="/tmp/kourier.yaml" || return $?
-}
-
-function install_catalogsource(){
+function install_serverless(){
+  header "Installing Serverless Operator"
 
   # And checkout the setup script based on that commit.
   local SERVERLESS_DIR=$(mktemp -d)
-  local CURRENT_DIR=$(pwd)
+
+  # Use the absolute path for KNATIVE_SERVING_MANIFESTS_DIR. It is used in `make generated-files`.
+  export KNATIVE_SERVING_MANIFESTS_DIR="$(pwd)/openshift/release/artifacts"
+
   git clone --depth 1 https://github.com/openshift-knative/serverless-operator.git ${SERVERLESS_DIR}
   pushd ${SERVERLESS_DIR}
 
   source ./test/lib.bash
   create_namespaces "${SYSTEM_NAMESPACES[@]}"
   export GOPATH=/tmp/go
-  OPENSHIFT_CI="true" make generated-files || return $?
-  update_csv $CURRENT_DIR || return $?
-  # Make OPENSHIFT_CI non-empty to build the serverless index and use S-O nightly build images.
-  OPENSHIFT_CI="true" ensure_catalogsource_installed || return $?
+  export ON_CLUSTER_BUILDS=true
+  export DOCKER_REPO_OVERRIDE=image-registry.openshift-image-registry.svc:5000/openshift-marketplace
+  OPENSHIFT_CI="true" make generated-files images install-serving || return $?
+
   # Create a secret for https test.
   trust_router_ca || return $?
   popd
 }
 
 function install_knative(){
-  header "Installing Knative"
-  export KNATIVE_SERVING_TEST_MANIFESTS_DIR="${root}/release/artifacts"
-  install_catalogsource || return $?
-  create_configmaps || return $?
-  deploy_serverless_operator "$CURRENT_CSV" || return $?
+  install_serverless || return $?
 
-  # Wait for the CRD to appear
-  timeout 900 '[[ $(oc get crd | grep -c knativeservings) -eq 0 ]]' || return 1
-
-  # Install Knative Serving with initial values in test/config/config-observability.yaml.
-  cat <<-EOF | oc apply -f - || return $?
-apiVersion: operator.knative.dev/v1beta1
-kind: KnativeServing
-metadata:
-  name: knative-serving
-  namespace: ${SERVING_NAMESPACE}
-spec:
-  ingress:
-    kourier:
-      service-type: "LoadBalancer" # To enable gRPC and HTTP2 tests without OCP Route.
-  config:
-    deployment:
-      progressDeadline: "120s"
-    observability:
-      logging.request-log-template: '{"httpRequest": {"requestMethod": "{{.Request.Method}}",
-        "requestUrl": "{{js .Request.RequestURI}}", "requestSize": "{{.Request.ContentLength}}",
-        "status": {{.Response.Code}}, "responseSize": "{{.Response.Size}}", "userAgent":
-        "{{js .Request.UserAgent}}", "remoteIp": "{{js .Request.RemoteAddr}}", "serverIp":
-        "{{.Revision.PodIP}}", "referer": "{{js .Request.Referer}}", "latency": "{{.Response.Latency}}s",
-        "protocol": "{{.Request.Proto}}"}, "traceId": "{{index .Request.Header "X-B3-Traceid"}}"}'
-      logging.enable-probe-request-log: "true"
-      logging.enable-request-log: "true"
-EOF
-
-  # Wait for 4 pods to appear first
-  timeout 600 '[[ $(oc get pods -n $SERVING_NAMESPACE --no-headers | wc -l) -lt 4 ]]' || return 1
-  wait_until_pods_running $SERVING_NAMESPACE || return 1
+  # To enable gRPC and HTTP2 tests without OCP Route.
+  oc patch knativeserving knative-serving \
+      -n "${SERVING_NAMESPACE}" \
+      --type merge --patch '{"spec": {"ingress": {"kourier": {"service-type": "LoadBalancer"}}}}'
 
   wait_until_service_has_external_ip $SERVING_INGRESS_NAMESPACE kourier || fail_test "Ingress has no external IP"
   wait_until_hostname_resolves "$(kubectl get svc -n $SERVING_INGRESS_NAMESPACE kourier -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
@@ -259,15 +153,6 @@ EOF
   fi
 
   header "Knative Installed successfully"
-}
-
-function create_configmaps(){
-  # Create configmap to use the latest manifest.
-  oc create configmap ko-data-serving -n $OPERATORS_NAMESPACE --from-file="${KNATIVE_SERVING_TEST_MANIFESTS_DIR}" || return $?
-
-  # Create eventing manifest. We don't want to do this, but upstream designed that knative-eventing dir is mandatory
-  # when KO_DATA_PATH was overwritten.
-  oc create configmap ko-data-eventing -n $OPERATORS_NAMESPACE --from-file="${root}/release/knative-eventing-ci.yaml" || return $?
 }
 
 function prepare_knative_serving_tests_nightly {
