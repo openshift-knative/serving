@@ -11,10 +11,10 @@ readonly YAML_OUTPUT_DIR="openshift/release/artifacts/"
 rm -rf "$YAML_OUTPUT_DIR"
 mkdir -p "$YAML_OUTPUT_DIR"
 
-readonly SERVING_CRD_YAML=${YAML_OUTPUT_DIR}/1-serving-crds.yaml
-readonly SERVING_CORE_YAML=${YAML_OUTPUT_DIR}/2-serving-core.yaml
-readonly SERVING_HPA_YAML=${YAML_OUTPUT_DIR}/3-serving-hpa.yaml
-readonly SERVING_POST_INSTALL_JOBS_YAML=${YAML_OUTPUT_DIR}/4-serving-post-install-jobs.yaml
+readonly SERVING_CRD_YAML=${YAML_OUTPUT_DIR}/serving-crds.yaml
+readonly SERVING_CORE_YAML=${YAML_OUTPUT_DIR}/serving-core.yaml
+readonly SERVING_HPA_YAML=${YAML_OUTPUT_DIR}/serving-hpa.yaml
+readonly SERVING_POST_INSTALL_JOBS_YAML=${YAML_OUTPUT_DIR}/serving-post-install-jobs.yaml
 
 if [[ "$VERSION" == "ci" ]]; then
   # Do not use devel as operator checks the version.
