@@ -4,6 +4,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
   serving-reviewers:
@@ -11,6 +12,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
 
@@ -19,6 +21,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
   serving-api-reviewers:
@@ -26,6 +29,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
 
@@ -34,6 +38,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
   autoscaling-reviewers:
@@ -41,6 +46,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
 
@@ -49,6 +55,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
   monitoring-reviewers:
@@ -56,6 +63,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
 
@@ -64,6 +72,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
   productivity-reviewers:
@@ -71,6 +80,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
 
@@ -79,6 +89,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
   networking-reviewers:
@@ -86,6 +97,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
 
@@ -94,6 +106,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
   build-reviewers:
@@ -101,6 +114,7 @@ aliases:
   - mgencur
   - mvinkler
   - nak3
+  - ReToCode
   - rhuss
   - skonto
 
