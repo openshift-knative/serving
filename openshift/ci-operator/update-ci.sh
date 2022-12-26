@@ -57,13 +57,13 @@ if [[ "$VERSION" != "next" ]]; then
       NAME=knative-serving-test-$(basename $IMAGE | sed 's/_/-/' | sed 's/_/-/' | sed 's/[_.]/-/' | sed 's/[_.]/-/' | sed 's/v0/upgrade-v0/')
 
       step "Adding $NAME to mirror file as $VERSION tag"
-      LINE="registry.ci.openshift.org/openshift/knative-$VERSION.0:$NAME quay.io/openshift-knative/${NAME/knative-serving-test-/}:$VERSION"
+      LINE="registry.ci.openshift.org/knative/knative-$VERSION.0:$NAME quay.io/openshift-knative/${NAME/knative-serving-test-/}:$VERSION"
       # Add $LINE if not already present
       grep -q "^$LINE\$" $MIRROR || echo "$LINE"  >> $MIRROR
 
       VER=$(echo $VER | sed 's/\_/./')
       step "Adding $NAME to mirror file as $VER tag"
-      LINE="registry.ci.openshift.org/openshift/knative-$VERSION.0:$NAME quay.io/openshift-knative/${NAME/knative-serving-test-/}:$VER"
+      LINE="registry.ci.openshift.org/knative/knative-$VERSION.0:$NAME quay.io/openshift-knative/${NAME/knative-serving-test-/}:$VER"
       # Add $LINE if not already present
       grep -q "^$LINE\$" $MIRROR || echo "$LINE"  >> $MIRROR
   done
@@ -75,7 +75,7 @@ else
   for IMAGE in $test_images; do
       NAME=knative-serving-test-$(basename $IMAGE | sed 's/_/-/' | sed 's/_/-/' | sed 's/[_.]/-/' | sed 's/[_.]/-/' | sed 's/v0/upgrade-v0/')
       step "Adding $NAME to mirror file as latest tag"
-      LINE="registry.ci.openshift.org/openshift/knative-nightly:$NAME quay.io/openshift-knative/${NAME/knative-serving-test-/}:latest"
+      LINE="registry.ci.openshift.org/knative/knative-nightly:$NAME quay.io/openshift-knative/${NAME/knative-serving-test-/}:latest"
       # Add $LINE if not already present
       grep -q "^$LINE\$" $MIRROR || echo "$LINE"  >> $MIRROR
   done
