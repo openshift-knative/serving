@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
-function generate_dockefiles() {
+function generate_dockerfiles() {
   local target_dir=$1; shift
   # Remove old images and re-generate, avoid stale images hanging around.
   for img in $@; do
@@ -18,4 +18,4 @@ function generate_dockefiles() {
   done
 }
 
-generate_dockefiles $@
+generate_dockerfiles $@

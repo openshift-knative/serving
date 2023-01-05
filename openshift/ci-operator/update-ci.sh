@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # A script that will update the mapping file in github.com/openshift/release
 
 set -e
@@ -28,9 +28,9 @@ test -n "$VERSION" || fail "'$BRANCH' is not a release branch"
 # Set up variables for important locations in the openshift/release repo.
 OPENSHIFT=$(realpath "$1"); shift
 test -d "$OPENSHIFT/.git" || fail "'$OPENSHIFT' is not a git repo"
-CONFIGDIR=$OPENSHIFT/ci-operator/config/openshift/knative-serving
+CONFIGDIR=$OPENSHIFT/ci-operator/config/openshift-knative/serving
 test -d "$CONFIGDIR" || fail "'$CONFIGDIR' is not a directory"
-PERIODIC_CONFIGDIR=$OPENSHIFT/ci-operator/jobs/openshift/knative-serving
+PERIODIC_CONFIGDIR=$OPENSHIFT/ci-operator/jobs/openshift-knative/serving
 test -d "$PERIODIC_CONFIGDIR" || fail "'$PERIODIC_CONFIGDIR' is not a directory"
 
 # Generate CI config files
