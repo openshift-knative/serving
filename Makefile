@@ -4,6 +4,8 @@ CGO_ENABLED=0
 GOOS=linux
 CORE_IMAGES=./cmd/activator ./cmd/autoscaler ./cmd/autoscaler-hpa ./cmd/controller ./cmd/queue ./cmd/webhook ./vendor/knative.dev/pkg/apiextensions/storageversion/cmd/migrate ./cmd/domain-mapping ./cmd/domain-mapping-webhook
 TEST_IMAGES=$(shell find ./test/test_images ./test/test_images/multicontainer -mindepth 1 -maxdepth 1 -type d)
+# Exclude wrapper images like multicontainer and initcontainers as those are just ko convenience wrappers used upstream. The openshift serverless tests use other images to run.
+TEST_IMAGES_WITHOUT_WRAPPERS=$(shell find ./test/test_images ./test/test_images/multicontainer -mindepth 1 -maxdepth 1 -type d -not -name multicontainer -not -name initcontainers)
 BRANCH=
 TEST=
 IMAGE=
@@ -19,7 +21,7 @@ install:
 .PHONY: install
 
 test-install:
-	for img in $(TEST_IMAGES); do \
+	for img in $(TEST_IMAGES_WITHOUT_WRAPPERS); do \
 		go install $$img ; \
 	done
 .PHONY: test-install
@@ -59,7 +61,7 @@ test-e2e-local:
 # Generate Dockerfiles for core and test images used by ci-operator. The files need to be committed manually.
 generate-dockerfiles:
 	./openshift/ci-operator/generate-dockerfiles.sh openshift/ci-operator/knative-images $(CORE_IMAGES)
-	./openshift/ci-operator/generate-dockerfiles.sh openshift/ci-operator/knative-test-images $(TEST_IMAGES)
+	./openshift/ci-operator/generate-dockerfiles.sh openshift/ci-operator/knative-test-images $(TEST_IMAGES_WITHOUT_WRAPPERS)
 .PHONY: generate-dockerfiles
 
 # Generates a ci-operator configuration for a specific branch.

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Usage: create-release-branch.sh v0.4.1 release-0.4
 

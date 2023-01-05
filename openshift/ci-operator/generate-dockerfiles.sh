@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -x
 
-function generate_dockefiles() {
+function generate_dockerfiles() {
   local target_dir=$1; shift
   for img in $@; do
     local image_base=$(basename $img)
@@ -11,4 +11,4 @@ function generate_dockefiles() {
   done
 }
 
-generate_dockefiles $@
+generate_dockerfiles $@

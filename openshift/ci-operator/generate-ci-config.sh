@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 branch=${1-'knative-v0.6.0'}
 openshift=${2-'4.3'}
@@ -14,6 +14,7 @@ else
 fi
 
 core_images=$(find ./openshift/ci-operator/knative-images -mindepth 1 -maxdepth 1 -type d | LC_COLLATE=posix sort)
+# Exclude wrapper images like multicontainer and initcontainers as those are just ko convenience wrappers used upstream. The openshift serverless tests use other images to run.
 exclude_images="-not -name multicontainer -not -name initcontainers"
 test_images=$(find ./openshift/ci-operator/knative-test-images -mindepth 1 -maxdepth 1 -type d $exclude_images | LC_COLLATE=posix sort)
 
