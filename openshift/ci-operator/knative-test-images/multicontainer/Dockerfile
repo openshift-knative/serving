@@ -7,5 +7,5 @@ RUN make install test-install
 FROM openshift/origin-base
 USER 65532
 
-COPY --from=builder /go/bin/wsserver /ko-app/wsserver
-ENTRYPOINT ["/ko-app/wsserver"]
+COPY --from=builder /go/bin/multicontainer /ko-app/multicontainer
+ENTRYPOINT ["/ko-app/multicontainer"]
