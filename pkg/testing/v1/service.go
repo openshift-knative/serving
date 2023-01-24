@@ -19,6 +19,7 @@ package v1
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -96,15 +97,22 @@ func WithRouteSpec(route v1.RouteSpec) ServiceOption {
 	}
 }
 
+var (
+	// Add random portnumber more than 1025~65535.
+	RandomPortNumber = int32(rand.Intn(65535-1025) + 1025)
+)
+
 // WithNamedPort sets the name on the Service's port to the provided name
 func WithNamedPort(name string) ServiceOption {
 	return func(svc *v1.Service) {
 		c := &svc.Spec.Template.Spec.Containers[0]
 		if len(c.Ports) == 1 {
 			c.Ports[0].Name = name
+			c.Ports[0].ContainerPort = RandomPortNumber
 		} else {
 			c.Ports = []corev1.ContainerPort{{
-				Name: name,
+				Name:          name,
+				ContainerPort: RandomPortNumber, // Set randome number otherwise '0' is set.
 			}}
 		}
 	}

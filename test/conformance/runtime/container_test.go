@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/ptr"
 	v1 "knative.dev/serving/pkg/apis/serving/v1"
+	testingv1 "knative.dev/serving/pkg/testing/v1"
 	"knative.dev/serving/test"
 	testv1 "knative.dev/serving/test/v1"
 )
@@ -43,7 +44,8 @@ func TestMustNotContainerConstraints(t *testing.T) {
 		name: "TestArbitraryPortName",
 		options: func(s *v1.Service) {
 			s.Spec.Template.Spec.Containers[0].Ports = []corev1.ContainerPort{{
-				Name: "arbitrary",
+				Name:          "arbitrary",
+				ContainerPort: testingv1.RandomPortNumber, // Set randome number otherwise '0' is set and get unexpected error.
 			}}
 		},
 	}, {

@@ -31,7 +31,10 @@ import (
 func withPort(name string) testingv1.ServiceOption {
 	return func(s *v1.Service) {
 		if name != "" {
-			s.Spec.Template.Spec.Containers[0].Ports = []corev1.ContainerPort{{Name: name}}
+			s.Spec.Template.Spec.Containers[0].Ports = []corev1.ContainerPort{{
+				Name:          name,
+				ContainerPort: testingv1.RandomPortNumber, // Set randome number otherwise '0' is set.
+			}}
 		}
 	}
 }
