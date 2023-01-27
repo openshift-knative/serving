@@ -213,6 +213,8 @@ function run_e2e_tests(){
   sleep 30
   subdomain=$(oc get ingresses.config.openshift.io cluster  -o jsonpath="{.spec.domain}")
 
+    oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"secure-pod-defaults": "enabled"}}}}' || fail_test
+
   if [ -n "$test_name" ]; then
     oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-volumes-emptydir": "enabled"}}}}' || fail_test
     go_test_e2e -tags=e2e -timeout=15m -parallel=1 \
