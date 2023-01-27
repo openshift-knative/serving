@@ -23,9 +23,15 @@ function resolve_file() {
   # 1. Rewrite image references
   # 2. Update config map entry
   # 3. Replace serving.knative.dev/release label.
-  # 4. Remove seccompProfile.
-  sed -e "s+app.kubernetes.io/version: devel+app.kubernetes.io/version: \""$version"\"+" \
-      -e "s+seccompProfile:++" \
-      -e "s+type: RuntimeDefault++" \
-      "$file" >> "$to"
+  # 4. Remove seccompProfile, except on CRD files in 300-resources folder to avoid breaking CRDs.
+  if [[ $file == config/core//300-resources/* ]]; then
+    sed -e "s+app.kubernetes.io/version: devel+app.kubernetes.io/version: \""$version"\"+" \
+        -e "s+type: RuntimeDefault++" \
+        "$file" >> "$to"
+  else
+    sed -e "s+app.kubernetes.io/version: devel+app.kubernetes.io/version: \""$version"\"+" \
+        -e "s+seccompProfile:++" \
+        -e "s+type: RuntimeDefault++" \
+        "$file" >> "$to"
+  fi
 }
