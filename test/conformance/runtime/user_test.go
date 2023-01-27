@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	"knative.dev/pkg/ptr"
 	"knative.dev/serving/test"
 
 	. "knative.dev/serving/pkg/testing/v1"
@@ -43,9 +44,8 @@ func TestMustRunAsUser(t *testing.T) {
 	t.Parallel()
 	clients := test.Setup(t)
 
-	runAsUser := int64(securityContextUserID)
 	securityContext := &corev1.SecurityContext{
-		RunAsUser: &runAsUser,
+		RunAsUser: ptr.Int64(securityContextUserID),
 	}
 
 	// We need to modify the working dir because the specified user cannot access the
