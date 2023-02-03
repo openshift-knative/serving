@@ -100,6 +100,34 @@ function timeout() {
   return 0
 }
 
+function serverless_operator_version {
+  if [[ "$branch" == "knative-v1.7" ]]; then
+    echo 'release-1.28'
+  elif [[ "$branch" == "knative-v1.8" ]]; then
+    echo 'release-1.29'
+  elif [[ "$branch" == "knative-v1.9" ]]; then
+    echo 'release-1.30'
+  elif [[ "$branch" == "knative-v1.10" ]]; then
+    echo 'release-1.31'
+  elif [[ "$branch" == "knative-v1.11" ]]; then
+    echo 'release-1.32'
+  elif [[ "$branch" == "knative-v1.12" ]]; then
+    echo 'release-1.33'
+  elif [[ "$branch" == "knative-v1.13" ]]; then
+    echo 'release-1.34'
+  elif [[ "$branch" == "knative-v1.14" ]]; then
+    echo 'release-1.35'
+  elif [[ "$branch" == "knative-v1.15" ]]; then
+    echo 'release-1.36'
+  elif [[ "$branch" == "knative-v1.16" ]]; then
+    echo 'release-1.37'
+  elif [[ "$branch" == "knative-v1.17" ]]; then
+    echo 'release-1.38'
+  else
+    echo 'main'
+  fi
+}
+
 function install_serverless(){
   header "Installing Serverless Operator"
 
@@ -109,7 +137,11 @@ function install_serverless(){
   # Use the absolute path for KNATIVE_SERVING_MANIFESTS_DIR. It is used in `make generated-files`.
   export KNATIVE_SERVING_MANIFESTS_DIR="$(pwd)/openshift/release/artifacts"
 
-  git clone --depth 1 https://github.com/openshift-knative/serverless-operator.git ${SERVERLESS_DIR}
+  if ! git clone -b $(serverless_operator_version) --depth 1 https://github.com/openshift-knative/serverless-operator.git ${SERVERLESS_DIR}; then
+     # As serving branch cuts before SO branch so it fails to clone the branch in the meantime.
+     echo "Failed to clone $(serverless_operator_version) SO branch. Use main branch."
+     git clone --depth 1 https://github.com/openshift-knative/serverless-operator.git ${SERVERLESS_DIR}
+  fi
   pushd ${SERVERLESS_DIR}
 
   source ./test/lib.bash
