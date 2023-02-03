@@ -42,8 +42,8 @@ CURDIR=$(dirname $0)
 # $1=branch $2=openshift $3=promotion_disabled $4=generate_continuous $5=internal_tls_enabled(optional)
 $CURDIR/generate-ci-config.sh knative-$VERSION 4.8 true false > ${CONFIG}__48.yaml
 $CURDIR/generate-ci-config.sh knative-$VERSION 4.9 true false > ${CONFIG}__49.yaml
-$CURDIR/generate-ci-config.sh knative-$VERSION 4.11 true false > ${CONFIG}__411.yaml
-$CURDIR/generate-ci-config.sh knative-$VERSION 4.11 false true true > ${CONFIG}__411.yaml
+$CURDIR/generate-ci-config.sh knative-$VERSION 4.12 true false > ${CONFIG}__412.yaml
+$CURDIR/generate-ci-config.sh knative-$VERSION 4.12 false true true > ${CONFIG}__412.yaml
 
 # Append missing lines to the mirror file.
 if [[ "$VERSION" != "next" ]]; then
@@ -91,7 +91,7 @@ RERUN_MAKE=false
 if [[ "$VERSION" != "next" ]]; then
   stage "Adding reporter_config to periodics"
   # These version MUST match the ocp version we used above
-  for OCP_VERSION in 411; do
+  for OCP_VERSION in 412; do
     JOB="periodic-ci-openshift-knative-serving-release-${VERSION}-${OCP_VERSION}-e2e-aws-ocp-${OCP_VERSION}-continuous"  
     if [[ $(sed -n "/  name: $JOB/ r $TMPDIR/reporterConfig" "$PERIODIC_CONFIG") ]]; then
       sed -i "/  name: $JOB/ r $TMPDIR/reporterConfig" "$PERIODIC_CONFIG"
