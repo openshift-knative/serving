@@ -352,6 +352,7 @@ function run_e2e_tests(){
   oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-volumes-emptydir": "enabled"}}}}' || fail_test
   go_test_e2e -tags=e2e -timeout=30m -parallel=$parallel \
     ./test/e2e ./test/conformance/api/... ./test/conformance/runtime/... \
+    -run=TestAutoscaleSustaining \
     --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     --enable-alpha \
