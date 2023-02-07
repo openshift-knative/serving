@@ -101,7 +101,7 @@ func runAutoscaleUpCountPods(t *testing.T, class, metric string) {
 }
 
 func TestAutoscaleSustaining(t *testing.T) {
-	t.Log("GOMAXPROCS:", runtime.GOMAXPROCS(0))
+	t.Fatal("GOMAXPROCS:", runtime.GOMAXPROCS(0))
 	if testing.Short() {
 		// TODO sort out kind issues causing flakiness
 		t.Skip("#13049: Skipped because of excessive flakiness on kind")
