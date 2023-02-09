@@ -178,7 +178,7 @@ func main() {
 		}
 
 		if ok := pool.AppendCertsFromPEM(caSecret.Data[certificates.SecretCaCertKey]); !ok {
-			logger.Fatalw("Failed to append ca cert to the RootCAs %+v", caSecret.Data[certificates.SecretCaCertKey])
+			logger.Fatalf("Failed to append ca cert to the RootCAs %+v", caSecret.Data[certificates.SecretCaCertKey])
 		}
 
 		tlsConf := &tls.Config{
