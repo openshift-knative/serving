@@ -17,13 +17,12 @@ limitations under the License.
 package main
 
 import (
-	// The set of controllers this controller process runs.
-	"knative.dev/serving/pkg/reconciler/autoscaling/hpa"
+	"knative.dev/serving/pkg/reconciler/autoscaling/versionwrapper"
 
 	// This defines the shared main for injected controllers.
 	"knative.dev/pkg/injection/sharedmain"
 )
 
 func main() {
-	sharedmain.Main("hpaautoscaler", hpa.NewController)
+	sharedmain.Main("hpaautoscaler", versionwrapper.NewController)
 }
