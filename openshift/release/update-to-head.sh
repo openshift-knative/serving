@@ -28,12 +28,6 @@ git apply openshift/patches/*
 git add .
 git commit -am ":fire: Apply carried patches."
 
-# Revert the autoscaling API version change.
-git revert 974d19d03644dff46b097a15efb4d3d7167765ad
-
-# Revert the autoscaling API version change in webhook resource.
-git revert a6a18b857be4f9e03a5bc4e196ea8450ff68828e
-
 make generate-dockerfiles
 make RELEASE=ci generate-release
 git add openshift OWNERS_ALIASES OWNERS Makefile
