@@ -21,17 +21,17 @@ func NewController(
 	kc := kubeclient.Get(ctx)
 	// Starting from 4.10 (1.24.0) we can use the new API version (autoscaling/v2) of HorizontalPodAutoscaler
 	// As we also need to support 4.8 we also need provide the controller using the old API version (autoscaling/v2beta2)
-	if err := checkMinimumVersion(kc.Discovery(), "1.24.0"); err == nil {
+	if err := CheckMinimumVersion(kc.Discovery(), "1.24.0"); err == nil {
 		return hpa.NewController(ctx, cmw)
 	} else {
 		return hpav2beta2.NewController(ctx, cmw)
 	}
 }
 
-// checkMinimumVersion checks if current K8s version we are on is higher than the one passed.
+// CheckMinimumVersion checks if current K8s version we are on is higher than the one passed.
 // An error is returned if the version is lower.
 // Based on implementation in SO: https://github.com/openshift-knative/serverless-operator/blob/main/openshift-knative-operator/pkg/common/api.go#L134
-func checkMinimumVersion(versioner discovery.ServerVersionInterface, version string) error {
+func CheckMinimumVersion(versioner discovery.ServerVersionInterface, version string) error {
 	v, err := versioner.ServerVersion()
 	if err != nil {
 		return err
