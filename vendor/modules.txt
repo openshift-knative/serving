@@ -1265,6 +1265,8 @@ knative.dev/pkg/client/injection/kube/informers/admissionregistration/v1/mutatin
 knative.dev/pkg/client/injection/kube/informers/admissionregistration/v1/validatingwebhookconfiguration
 knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment
 knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment/fake
+knative.dev/pkg/client/injection/kube/informers/autoscaling/v2/horizontalpodautoscaler
+knative.dev/pkg/client/injection/kube/informers/autoscaling/v2/horizontalpodautoscaler/fake
 knative.dev/pkg/client/injection/kube/informers/autoscaling/v2beta2/horizontalpodautoscaler
 knative.dev/pkg/client/injection/kube/informers/autoscaling/v2beta2/horizontalpodautoscaler/fake
 knative.dev/pkg/client/injection/kube/informers/coordination/v1/lease

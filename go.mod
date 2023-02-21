@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.1-0.20210609063737-0067dc6dcea2
+	github.com/blang/semver/v4 v4.0.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/go-cmp v0.5.7
@@ -70,7 +71,6 @@ require (
 	github.com/aws/smithy-go v1.11.0 // indirect
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20220228164355-396b2034c795 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
 	github.com/c2h5oh/datasize v0.0.0-20200112174442-28bbd4740fee // indirect
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
