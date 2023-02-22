@@ -34,10 +34,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"knative.dev/pkg/injection"
 	pkgTest "knative.dev/pkg/test"
 	"knative.dev/pkg/test/spoof"
 	"knative.dev/serving/pkg/apis/autoscaling"
-	"knative.dev/serving/pkg/reconciler/autoscaling/versionwrapper"
 	resourcenames "knative.dev/serving/pkg/reconciler/revision/resources/names"
 	rtesting "knative.dev/serving/pkg/testing/v1"
 	"knative.dev/serving/test"
@@ -252,7 +252,7 @@ func waitForHPAState(t *testing.T, name, namespace string, clients *test.Clients
 	return wait.PollImmediate(time.Second, 15*time.Minute, func() (bool, error) {
 		// Starting from 4.10 (1.24.0) we can use the new API version (autoscaling/v2) of HorizontalPodAutoscaler
 		// As we also need to support 4.8 we also need provide the controller using the old API version (autoscaling/v2beta2)
-		if err := versionwrapper.CheckMinimumVersion(clients.KubeClient.Discovery(), "1.24.0"); err == nil {
+		if err := injection.CheckMinimumVersion(clients.KubeClient.Discovery(), "1.24.0"); err == nil {
 			hpa, err := clients.KubeClient.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(context.Background(), name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
