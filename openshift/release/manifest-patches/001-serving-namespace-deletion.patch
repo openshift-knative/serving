@@ -23,7 +23,7 @@ index 53f1a1b3f..b166104c8 100644
 -  name: knative-serving
 -  labels:
 -    app.kubernetes.io/name: knative-serving
--    app.kubernetes.io/version: "1.8.0"
+-    app.kubernetes.io/version: "1.8.5"
 -
  ---
  # Copyright 2019 The Knative Authors

@@ -1,6 +1,6 @@
 
 ---
-# /tmp/knative.Zgc8hyAf/tmp.tiuivWHXJa/serving-storage-version-migration.yaml
+# /tmp/knative.5qBkUvVw/tmp.9FR03dApvb/serving-storage-version-migration.yaml
 # Copyright 2020 The Knative Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@ metadata:
     app: storage-version-migration-serving
     app.kubernetes.io/name: knative-serving
     app.kubernetes.io/component: storage-version-migration-job
-    app.kubernetes.io/version: "1.8.0"
+    app.kubernetes.io/version: "1.8.5"
 spec:
   ttlSecondsAfterFinished: 600
   backoffLimit: 10
@@ -36,7 +36,7 @@ spec:
         app: storage-version-migration-serving
         app.kubernetes.io/name: knative-serving
         app.kubernetes.io/component: storage-version-migration-job
-        app.kubernetes.io/version: "1.8.0"
+        app.kubernetes.io/version: "1.8.5"
     spec:
       serviceAccountName: controller
       restartPolicy: OnFailure
@@ -44,7 +44,7 @@ spec:
         - name: migrate
           # This is the Go import path for the binary that is containerized
           # and substituted here.
-          image: gcr.io/knative-releases/knative.dev/pkg/apiextensions/storageversion/cmd/migrate@sha256:d0095787bc1687e2d8180b36a66997733a52f8c49c3e7751f067813e3fb54b66
+          image: gcr.io/knative-releases/knative.dev/pkg/apiextensions/storageversion/cmd/migrate@sha256:2c36b9d1526d23e6210527d3024380df7dca4bf3887ee570f5b8b1914572ef34
           args:
             - "services.serving.knative.dev"
             - "configurations.serving.knative.dev"
