@@ -1,0 +1,13 @@
+diff --git a/openshift/release/artifacts/3-serving-hpa.yaml b/openshift/release/artifacts/3-serving-hpa.yaml
+index d98de0e50..2d713bec7 100644
+--- a/openshift/release/artifacts/3-serving-hpa.yaml
++++ b/openshift/release/artifacts/3-serving-hpa.yaml
+@@ -77,7 +77,7 @@ spec:
+             runAsNonRoot: true
+             capabilities:
+               drop:
+-                - all
++                - ALL
+           ports:
+             - name: metrics
+               containerPort: 9090
