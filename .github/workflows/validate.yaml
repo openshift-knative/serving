@@ -1,0 +1,144 @@
+---
+name: Validate
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch: # Manual workflow trigger
+
+jobs:
+  generated-files-committed:
+    if: github.base_ref != 'main'
+    name: Generated files are committed
+    runs-on: ubuntu-latest
+    env:
+      GOPATH: ${{ github.workspace }}
+    steps:
+      - name: Setup Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18.x
+
+      - name: Install prerequisites
+        env:
+          YQ_VERSION: 3.4.0
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64 -O /usr/bin/yq
+          sudo chmod +x /usr/bin/yq
+          sudo mv /usr/bin/yq /usr/local/bin/yq
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: ./src/github.com/${{ github.repository }}
+          fetch-depth: 0
+
+      - name: Regenerate all generated files
+        working-directory: ./src/github.com/${{ github.repository }}
+        run: ./openshift/release/generate-release.sh ${{ github.base_ref }}
+
+      - name: Check if everything is consistent
+        working-directory: ./src/github.com/${{ github.repository }}
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo '::debug::Running `git status`'
+            git -c color.status=always status
+            echo '::debug::Running `git diff`'
+            git -c color.ui=always diff
+            echo '::error::Not all generated files are commited. Run `make generated-files` and commit files.'
+            echo '::warning::`make generated-files` needs to be run on GOPATH due to https://github.com/knative/pkg/issues/1287'
+            exit 33
+          fi
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    env:
+      GOPATH: ${{ github.workspace }}
+    steps:
+      - name: Set up Go 1.18.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18.x
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: ./src/github.com/${{ github.repository }}
+
+      - name: Install Tools
+        working-directory: ./src/github.com/${{ github.repository }}
+        env:
+          WOKE_VERSION: v0.13.0
+          OSDK_VERSION: v1.12.0
+        run: |
+          TEMP_PATH="$(mktemp -d)"
+          cd $TEMP_PATH
+
+          echo '::group::🐶 Installing reviewdog ... https://github.com/reviewdog/reviewdog'
+          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b "${TEMP_PATH}" 2>&1
+          echo '::endgroup::'
+
+          echo '::group:: Installing misspell ... https://github.com/client9/misspell'
+          go install github.com/client9/misspell/cmd/misspell@latest
+          echo '::endgroup::'
+
+          echo '::group:: Installing woke ... https://github.com/get-woke/woke'
+          curl -sfL https://raw.githubusercontent.com/get-woke/woke/main/install.sh | sh -s -- -b "${TEMP_PATH}" "${WOKE_VERSION}" 2>&1
+          echo '::endgroup::'
+
+          echo '::group:: Installing operator-sdk ... https://github.com/operator-framework/operator-sdk/'
+          curl -sfL https://github.com/operator-framework/operator-sdk/releases/download/${OSDK_VERSION}/operator-sdk_linux_amd64 -o "${TEMP_PATH}/operator-sdk"
+          chmod +x "${TEMP_PATH}/operator-sdk"
+
+          echo "${TEMP_PATH}" >> $GITHUB_PATH
+
+      - name: Shellcheck
+        working-directory: ./src/github.com/${{ github.repository }}
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ github.token }}
+        run: |
+          find . -type f \
+            -path './**/*.*sh' \
+            -not -path '*vendor*' | xargs -r shellcheck --format=checkstyle \
+            | reviewdog -f=checkstyle \
+                -name="shellcheck" \
+                -reporter="github-pr-check" \
+                -filter-mode="added" \
+                -fail-on-error="true" \
+                -level="error"
+
+      - name: Go Lint - knative-operator
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.50.1
+          args: --timeout=10m0s --verbose
+          working-directory: ./src/github.com/${{ github.repository }}
+
+      # This is mostly copied from https://github.com/get-woke/woke-action-reviewdog/blob/main/entrypoint.sh
+      # since their action is not yet released under a stable version.
+      - name: Language
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        working-directory: ./src/github.com/${{ github.repository }}
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ github.token }}
+        run: |
+          woke --output simple \
+            | reviewdog -efm="%f:%l:%c: %m" \
+                -name="woke" \
+                -reporter="github-pr-check" \
+                -filter-mode="added" \
+                -fail-on-error="true" \
+                -level="error"
+
+      - name: Prettify code
+        uses: creyD/prettier_action@v3.3
+        with:
+          dry: true
+          prettier_options: -c templates/*.yaml
