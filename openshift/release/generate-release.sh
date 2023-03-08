@@ -19,10 +19,6 @@ readonly SERVING_POST_INSTALL_JOBS_YAML=${YAML_OUTPUT_DIR}/serving-post-install-
 if [[ "$VERSION" == "ci" ]]; then
   # Do not use devel as operator checks the version.
   VERSION="v1.2.0"
-else
-  # Drop the "knative-" suffix, which is added in upstream branch.
-  # e.g. knative-v1.7.0 => v1.7.0
-  VERSION=${VERSION#"knative-"}
 fi
 
 # Generate Knative component YAML files
