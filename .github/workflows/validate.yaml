@@ -25,14 +25,6 @@ jobs:
         with:
           go-version: 1.18.x
 
-      - name: Install prerequisites
-        env:
-          YQ_VERSION: 3.4.0
-        run: |
-          sudo wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64 -O /usr/bin/yq
-          sudo chmod +x /usr/bin/yq
-          sudo mv /usr/bin/yq /usr/local/bin/yq
-
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -92,10 +84,6 @@ jobs:
           curl -sfL https://raw.githubusercontent.com/get-woke/woke/main/install.sh | sh -s -- -b "${TEMP_PATH}" "${WOKE_VERSION}" 2>&1
           echo '::endgroup::'
 
-          echo '::group:: Installing operator-sdk ... https://github.com/operator-framework/operator-sdk/'
-          curl -sfL https://github.com/operator-framework/operator-sdk/releases/download/${OSDK_VERSION}/operator-sdk_linux_amd64 -o "${TEMP_PATH}/operator-sdk"
-          chmod +x "${TEMP_PATH}/operator-sdk"
-
           echo "${TEMP_PATH}" >> $GITHUB_PATH
 
       - name: Shellcheck
@@ -113,7 +101,8 @@ jobs:
                 -fail-on-error="true" \
                 -level="error"
 
-      - name: Go Lint - knative-operator
+      - name: Go Lint - serving
+        if: github.base_ref != 'main'
         uses: golangci/golangci-lint-action@v3
         with:
           version: v1.50.1
@@ -140,4 +129,4 @@ jobs:
         uses: creyD/prettier_action@v3.3
         with:
           dry: true
-          prettier_options: -c templates/*.yaml
+          prettier_options: -c openshift/**/*.{sh,yaml}
