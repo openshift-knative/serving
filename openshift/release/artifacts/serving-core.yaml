@@ -6209,11 +6209,28 @@ spec:
           
             
 
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: probes
+            scheme: HTTP
+          periodSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: probes
+            scheme: HTTP
+          periodSeconds: 5
+          failureThreshold: 5
+
         ports:
         - name: metrics
           containerPort: 9090
         - name: profiling
           containerPort: 8008
+        - name: probes
+          containerPort: 8080
 
 ---
 apiVersion: v1
@@ -6325,11 +6342,28 @@ spec:
           
             
 
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: probes
+            scheme: HTTP
+          periodSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: probes
+            scheme: HTTP
+          periodSeconds: 5
+          failureThreshold: 5
+
         ports:
         - name: metrics
           containerPort: 9090
         - name: profiling
           containerPort: 8008
+        - name: probes
+          containerPort: 8080
 ---
 # Copyright 2020 The Knative Authors
 #
