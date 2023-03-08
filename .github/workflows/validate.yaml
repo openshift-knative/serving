@@ -51,8 +51,7 @@ jobs:
             git -c color.status=always status
             echo '::debug::Running `git diff`'
             git -c color.ui=always diff
-            echo '::error::Not all generated files are commited. Run `make generated-files` and commit files.'
-            echo '::warning::`make generated-files` needs to be run on GOPATH due to https://github.com/knative/pkg/issues/1287'
+            echo '::error::Not all generated files are commited. Run `openshift/release/generate-release.sh "BRANCH_NAME"` and commit files.'
             exit 33
           fi
 
