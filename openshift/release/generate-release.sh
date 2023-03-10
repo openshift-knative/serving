@@ -3,6 +3,7 @@
 root="$(dirname "${BASH_SOURCE[0]}")"
 
 source $(dirname $0)/resolve.sh
+# "VERSION" is used for the "app.kubernetes.io/version" label.
 VERSION=$1
 
 readonly YAML_OUTPUT_DIR="openshift/release/artifacts/"
@@ -18,7 +19,13 @@ readonly SERVING_POST_INSTALL_JOBS_YAML=${YAML_OUTPUT_DIR}/serving-post-install-
 
 if [[ "$VERSION" == "ci" ]]; then
   # Do not use devel as operator checks the version.
-  VERSION="v1.2.0"
+  VERSION="release-v1.2"
+elif [[ "$VERSION" =~ "knative-" ]]; then
+  # openshift/release/create-release-branch.sh
+  # Drop the "knative-" prefix and micro version, which is used in create-release-branch.sh.
+  # e.g. knative-v1.7.0 => release-v1.7
+  VERSION="release-"${VERSION#"knative-"}
+  VERSION="${VERSION%.*}"
 fi
 
 # Generate Knative component YAML files

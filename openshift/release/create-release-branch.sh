@@ -21,7 +21,6 @@ git checkout openshift/main -- .github/workflows openshift OWNERS_ALIASES OWNERS
 
 make generate-dockerfiles
 make RELEASE=$release generate-release
-make RELEASE=ci generate-release
 git add .github/workflows openshift OWNERS_ALIASES OWNERS Makefile
 git commit -m "Add openshift specific files."
 
@@ -35,6 +34,5 @@ if [ -d "openshift/patches-${release}" ]; then
 fi
 git apply $PATCH_DIR/*
 make RELEASE=$release generate-release
-make RELEASE=ci generate-release
 git add .
 git commit -am ":fire: Apply carried patches."
