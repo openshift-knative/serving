@@ -904,7 +904,6 @@ func TestRevisionDefaulting(t *testing.T) {
 							RunAsNonRoot:             ptr.Bool(true),
 							Capabilities: &corev1.Capabilities{
 								Drop: []corev1.Capability{"ALL"},
-								Add:  []corev1.Capability{"NET_BIND_SERVICE"},
 							},
 						},
 					}, {
