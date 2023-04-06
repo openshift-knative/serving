@@ -297,6 +297,7 @@ function run_e2e_tests(){
   oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-init-containers": "enabled"}}}}' || fail_test
   timeout 30 '[[ $(oc get cm -n $SERVING_NAMESPACE config-features -o jsonpath={.data.kubernetes.podspec-volumes-emptydir}) == "enabled" ]]' || fail_test
   timeout 30 '[[ $(oc get cm -n $SERVING_NAMESPACE config-features -o jsonpath={.data.kubernetes.podspec-init-containers}) == "enabled" ]]' || fail_test
+  sleep 30
   go_test_e2e -timeout=2m ./test/e2e/initcontainers \
     --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
@@ -307,6 +308,7 @@ function run_e2e_tests(){
   oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-init-containers": "disabled"}}}}' || fail_test
   timeout 30 '[[ $(oc get cm -n $SERVING_NAMESPACE config-features -o jsonpath={.data.kubernetes.podspec-volumes-emptydir}) == "disabled" ]]' || fail_test
   timeout 30 '[[ $(oc get cm -n $SERVING_NAMESPACE config-features -o jsonpath={.data.kubernetes.podspec-init-containers}) == "disabled" ]]' || fail_test
+  sleep 30
 
   # Run PVC test
   oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-persistent-volume-claim": "enabled"}}}}' || fail_test
