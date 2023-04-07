@@ -244,10 +244,10 @@ function run_e2e_tests(){
   subdomain=$(oc get ingresses.config.openshift.io cluster  -o jsonpath="{.spec.domain}")
 
   # Enable secure pod defaults for all tests.
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"secure-pod-defaults": "enabled"}}}}' || fail_test
+  enable_feature_flags secure-pod-defaults || fail_test
 
   if [ -n "$test_name" ]; then
-    oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-volumes-emptydir": "enabled"}}}}' || fail_test
+    enable_feature_flags kubernetes.podspec-volumes-emptydir || fail_test
     go_test_e2e -tags=e2e -timeout=15m -parallel=1 \
     ./test/e2e ./test/conformance/api/... ./test/conformance/runtime/... \
     -run "^(${test_name})$" \
@@ -259,7 +259,7 @@ function run_e2e_tests(){
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=$?
-    oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-volumes-emptydir": "disabled"}}}}' || fail_test
+    disable_feature_flags kubernetes.podspec-volumes-emptydir || fail_test
 
     return $failed
   fi
@@ -272,7 +272,7 @@ function run_e2e_tests(){
     parallel=2
   fi
 
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-volumes-emptydir": "enabled"}}}}' || fail_test
+  enable_feature_flags kubernetes.podspec-volumes-emptydir || fail_test
   go_test_e2e -tags=e2e -timeout=30m -parallel=$parallel \
     ./test/e2e ./test/conformance/api/... ./test/conformance/runtime/... \
     --kubeconfig "$KUBECONFIG" \
@@ -283,18 +283,18 @@ function run_e2e_tests(){
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=1
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-volumes-emptydir": "disabled"}}}}' || fail_test
+  disable_feature_flags kubernetes.podspec-volumes-emptydir || fail_test
 
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"tag-header-based-routing": "enabled"}}}}' || fail_test
-  go_test_e2e -timeout=2m ./test/e2e/tagheader \
+ enable_feature_flags tag-header-based-routing || fail_test
+ go_test_e2e -timeout=2m ./test/e2e/tagheader \
     --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=1
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"tag-header-based-routing": "disabled"}}}}' || fail_test
+  disable_feature_flags tag-header-based-routing || fail_test
 
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "autoscaler": {"allow-zero-initial-scale": "true"}}}}' || fail_test
+  configure_cm autoscaler allow-zero-initial-scale:true || fail_test
   # wait 10 sec until sync.
   sleep 10
   go_test_e2e -timeout=2m ./test/e2e/initscale \
@@ -303,18 +303,18 @@ function run_e2e_tests(){
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=1
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "autoscaler": {"allow-zero-initial-scale": "false"}}}}' || fail_test
+  configure_cm autoscaler allow-zero-initial-scale:false || fail_test
 
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"responsive-revision-gc": "enabled"}}}}' || fail_test
+  enable_feature_flags responsive-revision-gc || fail_test
   # immediate_gc
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "gc": {"retain-since-create-time":"disabled","retain-since-last-active-time":"disabled","min-non-active-revisions":"0","max-non-active-revisions":"0"}}}}' || fail_test
+  configure_cm gc retain-since-create-time:disabled retain-since-last-active-time:disabled min-non-active-revisions:0 max-non-active-revisions:0 || fail_test
   go_test_e2e -timeout=2m ./test/e2e/gc \
     --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=1
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"responsive-revision-gc": "disabled"}}}}' || fail_test
+  disable_feature_flags responsive-revision-gc || fail_test
 
   # Run HPA tests
   go_test_e2e -timeout=30m -tags=hpa ./test/e2e \
@@ -325,28 +325,17 @@ function run_e2e_tests(){
     --resolvabledomain || failed=1
 
   # Run init-containers test
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-volumes-emptydir": "enabled"}}}}' || fail_test
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-init-containers": "enabled"}}}}' || fail_test
-  timeout 30 '[[ $(oc get cm -n $SERVING_NAMESPACE config-features -o jsonpath={.data.kubernetes.podspec-volumes-emptydir}) == "enabled" ]]' || fail_test
-  timeout 30 '[[ $(oc get cm -n $SERVING_NAMESPACE config-features -o jsonpath={.data.kubernetes.podspec-init-containers}) == "enabled" ]]' || fail_test
-  sleep 30
+  enable_feature_flags kubernetes.podspec-volumes-emptydir kubernetes.podspec-init-containers || fail_test
   go_test_e2e -timeout=2m ./test/e2e/initcontainers \
     --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=1
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-volumes-emptydir": "disabled"}}}}' || fail_test
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-init-containers": "disabled"}}}}' || fail_test
-  timeout 30 '[[ $(oc get cm -n $SERVING_NAMESPACE config-features -o jsonpath={.data.kubernetes.podspec-volumes-emptydir}) == "disabled" ]]' || fail_test
-  timeout 30 '[[ $(oc get cm -n $SERVING_NAMESPACE config-features -o jsonpath={.data.kubernetes.podspec-init-containers}) == "disabled" ]]' || fail_test
-  sleep 30
+  disable_feature_flags kubernetes.podspec-volumes-emptydir kubernetes.podspec-init-containers || fail_test
 
   # Run PVC test
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-persistent-volume-claim": "enabled"}}}}' || fail_test
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-persistent-volume-write": "enabled"}}}}' || fail_test
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-securitycontext": "enabled"}}}}' || fail_test
-  sleep 30
+  enable_feature_flags kubernetes.podspec-persistent-volume-claim kubernetes.podspec-persistent-volume-write kubernetes.podspec-securitycontext || fail_test
   go_test_e2e -timeout=5m ./test/e2e/pvc \
     --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
@@ -354,10 +343,7 @@ function run_e2e_tests(){
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=1
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-persistent-volume-claim": "disabled"}}}}' || fail_test
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-persistent-volume-write": "disabled"}}}}' || fail_test
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch='{"spec": {"config": { "features": {"kubernetes.podspec-securitycontext": "disabled"}}}}' || fail_test
-  sleep 30
+  disable_feature_flags kubernetes.podspec-persistent-volume-claim kubernetes.podspec-persistent-volume-write kubernetes.podspec-securitycontext || fail_test
 
   # Run the helloworld test with an image pulled into the internal registry.
   local image_to_tag=$KNATIVE_SERVING_TEST_HELLOWORLD
@@ -462,4 +448,51 @@ function gather_knative_state {
   oc --insecure-skip-tls-verify adm must-gather \
     --image=quay.io/openshift-knative/must-gather \
     --dest-dir "$gather_dir" > "${gather_dir}/gather-knative.log"
+}
+
+function enable_feature_flags {
+  local failed=0
+
+  for feature in "$@"; do
+    echo "Enabling feature: $feature"
+    configure_cm features "$feature":enabled || failed=1
+  done
+  # Allow settings to be picked up
+  sleep 30
+  return $failed
+}
+
+function disable_feature_flags {
+  local failed=0
+
+  for feature in "$@"; do
+    echo "Disabling feature: $feature"
+    configure_cm features "$feature":disabled || failed=1
+  done
+  # Allow settings to be picked up
+  sleep 30
+  return $failed
+}
+
+function configure_cm {
+  local failed=0
+  local cm="$1"
+  local patch=""
+  declare -A json_properties
+
+  for property in "${@:2}"; do
+    KEY="${property%%:*}"
+    VALUE="${property##*:}"
+    patch=${patch:+$patch,}"\"$KEY\": \"$VALUE\""
+    # escape in case property contains dots eg. kubernetes.pod-spec
+    j_property="$(echo "'$KEY'" | sed "s/\./\\\./g")"
+    json_properties["$j_property"]="$VALUE"
+  done
+
+  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch="{\"spec\": {\"config\": { \"$cm\": {$patch} }}}" || failed=1
+
+  for j_property in "${!json_properties[@]}"; do
+    timeout 30 "[[ ! \$(oc get cm -n ${SYSTEM_NAMESPACE} config-$cm -o jsonpath={.data.${j_property}}) == \"${json_properties[$j_property]}\" ]]" || failed=1
+  done
+  return $failed
 }
