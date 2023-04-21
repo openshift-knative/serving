@@ -64,17 +64,7 @@ generate-dockerfiles:
 	./openshift/ci-operator/generate-dockerfiles.sh openshift/ci-operator/knative-test-images $(TEST_IMAGES_WITHOUT_WRAPPERS)
 .PHONY: generate-dockerfiles
 
-# Generates a ci-operator configuration for a specific branch.
-generate-ci-config:
-	./openshift/ci-operator/generate-ci-config.sh $(BRANCH) > ci-operator-config.yaml
-.PHONY: generate-ci-config
-
 # Generate an aggregated knative yaml file with replaced image references
 generate-release:
 	./openshift/release/generate-release.sh $(RELEASE)
 .PHONY: generate-release
-
-# Update CI configuration in the $(OPENSHIFT) directory.
-# NOTE: Makes changes outside this repository.
-update-ci:
-	sh ./openshift/ci-operator/update-ci.sh $(OPENSHIFT) $(CORE_IMAGES)
