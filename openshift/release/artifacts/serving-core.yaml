@@ -6215,14 +6215,14 @@ spec:
             port: probes
             scheme: HTTP
           periodSeconds: 5
-          failureThreshold: 5
+          failureThreshold: 6
         readinessProbe:
           httpGet:
             path: /readiness
             port: probes
             scheme: HTTP
           periodSeconds: 5
-          failureThreshold: 5
+          failureThreshold: 3
 
         ports:
         - name: metrics
@@ -6348,14 +6348,14 @@ spec:
             port: probes
             scheme: HTTP
           periodSeconds: 5
-          failureThreshold: 5
+          failureThreshold: 6
         readinessProbe:
           httpGet:
             path: /readiness
             port: probes
             scheme: HTTP
           periodSeconds: 5
-          failureThreshold: 5
+          failureThreshold: 3
 
         ports:
         - name: metrics
