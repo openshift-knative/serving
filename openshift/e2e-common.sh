@@ -203,9 +203,6 @@ function prepare_knative_serving_tests_nightly {
   oc adm policy add-scc-to-user anyuid -z default -n serving-tests
 
   export SYSTEM_NAMESPACE="$SERVING_NAMESPACE"
-  export GATEWAY_OVERRIDE=kourier
-  export GATEWAY_NAMESPACE_OVERRIDE="$SERVING_INGRESS_NAMESPACE"
-  export INGRESS_CLASS=kourier.ingress.networking.knative.dev
 
   if [[ ${ENABLE_INTERNAL_TLS} == "true" ]]; then
     # Deploy CA cert for testing TLS with cluster-local gateway
