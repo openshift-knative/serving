@@ -61,3 +61,12 @@ created and job manifests generated and pushed), the CI setup for that branch is
 ## Create a new release
 
 Refer to the [release manual](https://docs.google.com/document/d/18HVtCbvOuUpunORixcVdGNK6ZPjA9NybcGgVSP0g1LM/edit#heading=h.mam6uyjn1dzv).
+
+## Sync upstream
+
+Sometimes, upstream releases a micro release (e.g. v1.10.1) after downstream has already cut a minor release. To synchronize with the upstream release, we can trigger the GitHub action "Sync upstream" available at [this link](https://github.com/openshift-knative/serving/actions/workflows/sync-upstream.yaml). Please make sure to set:
+
+* Use workflow from: `Branch: main`
+* Release Version: `downstream brach (e.g. release-v1.10)`
+
+Afterward, the downstream branch release-v1.10 will synchronize with the upstream's release-1.10 branch. The GitHub action will create a pull request, similar to [pull/345](https://github.com/openshift-knative/serving/pull/345).
