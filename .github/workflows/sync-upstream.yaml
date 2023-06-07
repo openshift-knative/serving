@@ -23,7 +23,7 @@ jobs:
         run: |
           git remote add upstream "${UPSTREAM}"
           git fetch upstream
-          # upstream's base_ref has "v" like release-v1.10
+          # upstream's branch does not have "v" like release-1.10. We need to cut.
           BRANCH=${{ github.ref_name }}
           git merge upstream/"release-${BRANCH#release-v}"
 
