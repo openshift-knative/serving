@@ -3,6 +3,11 @@ name: Sync upstream
 
 on:
   workflow_dispatch: # Manual workflow trigger
+    inputs:
+      release:
+        type: string
+        required: true
+        description: Release Version
 
 jobs:
   sync-upstream:
@@ -18,27 +23,28 @@ jobs:
         with:
           path: ./src/github.com/${{ github.repository }}
           fetch-depth: 0
+          ref: ${{ inputs.release }}
+
       - name: Sync upstream
         working-directory: ./src/github.com/${{ github.repository }}
         run: |
           git remote add upstream "${UPSTREAM}"
           git fetch upstream
-          # upstream's branch does not have "v" like release-1.10. We need to cut.
-          BRANCH=${{ github.ref_name }}
+          BRANCH=${{ inputs.release }}
           git merge upstream/"release-${BRANCH#release-v}"
 
         shell: bash
 
       - name: Regenerate all generated files
         working-directory: ./src/github.com/${{ github.repository }}
-        run: ./openshift/release/generate-release.sh ${{ github.ref_name }}
+        run: ./openshift/release/generate-release.sh ${{ inputs.release }}
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
           path: ./src/github.com/${{ github.repository }}
-          branch: auto/sync-upstream-${{ github.ref_name }}
-          title: "[${{ github.ref_name }}] Sync upstream release"
+          branch: auto/sync-upstream-${{ inputs.release }}
+          title: "[${{ inputs.release }}] Sync upstream release"
           commit-message: "Sync upstream release"
           delete-branch: true
           body: |
