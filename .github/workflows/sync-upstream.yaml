@@ -1,0 +1,45 @@
+---
+name: Sync upstream
+
+on:
+  workflow_dispatch: # Manual workflow trigger
+
+jobs:
+  sync-upstream:
+    if: github.event.created || github.event_name == 'workflow_dispatch'
+    name:
+    runs-on: ubuntu-latest
+    env:
+      GOPATH: ${{ github.workspace }}
+      UPSTREAM: https://github.com/knative/serving.git
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: ./src/github.com/${{ github.repository }}
+          fetch-depth: 0
+      - name: Sync upstream
+        working-directory: ./src/github.com/${{ github.repository }}
+        run: |
+          git remote add upstream "${UPSTREAM}"
+          git fetch upstream
+          # upstream's base_ref has "v" like release-v1.10
+          BRANCH=${{ github.ref_name }}
+          git merge upstream/"release-${BRANCH#release-v}"
+
+        shell: bash
+
+      - name: Regenerate all generated files
+        working-directory: ./src/github.com/${{ github.repository }}
+        run: ./openshift/release/generate-release.sh ${{ github.ref_name }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          path: ./src/github.com/${{ github.repository }}
+          branch: auto/sync-upstream-${{ github.ref_name }}
+          title: "[${{ github.ref_name }}] Sync upstream release"
+          commit-message: "Sync upstream release"
+          delete-branch: true
+          body: |
+            Sync upstream release
