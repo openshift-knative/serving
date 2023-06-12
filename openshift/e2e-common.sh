@@ -340,6 +340,7 @@ function run_e2e_tests(){
     --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     --enable-alpha \
+    --enable-beta \
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=1
