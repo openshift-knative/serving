@@ -215,7 +215,6 @@ function run_e2e_tests(){
   enable_feature_flags secure-pod-defaults || fail_test
 
   if [ -n "$test_name" ]; then
-    enable_feature_flags kubernetes.podspec-volumes-emptydir || fail_test
     go_test_e2e -tags=e2e -timeout=15m -parallel=1 \
     ./test/e2e ./test/conformance/api/... ./test/conformance/runtime/... \
     -run "^(${test_name})$" \
@@ -227,8 +226,6 @@ function run_e2e_tests(){
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=$?
-    disable_feature_flags kubernetes.podspec-volumes-emptydir || fail_test
-
     return $failed
   fi
 
@@ -240,7 +237,6 @@ function run_e2e_tests(){
     parallel=2
   fi
 
-  enable_feature_flags kubernetes.podspec-volumes-emptydir || fail_test
   go_test_e2e -tags=e2e -timeout=30m -parallel=$parallel \
     ./test/e2e ./test/conformance/api/... ./test/conformance/runtime/... \
     --kubeconfig "$KUBECONFIG" \
@@ -251,7 +247,6 @@ function run_e2e_tests(){
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=1
-  disable_feature_flags kubernetes.podspec-volumes-emptydir || fail_test
 
  enable_feature_flags tag-header-based-routing || fail_test
  go_test_e2e -timeout=2m ./test/e2e/tagheader \
@@ -293,14 +288,14 @@ function run_e2e_tests(){
     --resolvabledomain || failed=1
 
   # Run init-containers test
-  enable_feature_flags kubernetes.podspec-volumes-emptydir kubernetes.podspec-init-containers || fail_test
+  enable_feature_flags kubernetes.podspec-init-containers || fail_test
   go_test_e2e -timeout=2m ./test/e2e/initcontainers \
     --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     --https \
     --skip-cleanup-on-fail \
     --resolvabledomain || failed=1
-  disable_feature_flags kubernetes.podspec-volumes-emptydir kubernetes.podspec-init-containers || fail_test
+  disable_feature_flags kubernetes.podspec-init-containers || fail_test
 
   # Run PVC test
   enable_feature_flags kubernetes.podspec-persistent-volume-claim kubernetes.podspec-persistent-volume-write kubernetes.podspec-securitycontext || fail_test
