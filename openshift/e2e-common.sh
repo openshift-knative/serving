@@ -243,6 +243,8 @@ function run_e2e_tests(){
   sleep 30
   subdomain=$(oc get ingresses.config.openshift.io cluster  -o jsonpath="{.spec.domain}")
 
+  readonly OPENSHIFT_TEST_OPTIONS="--kubeconfig $KUBECONFIG --enable-beta --enable-alpha --resolvabledomain --customdomain=$subdomain --https --skip-cleanup-on-fail"
+
   # Enable secure pod defaults for all tests.
   enable_feature_flags secure-pod-defaults || fail_test
 
@@ -250,14 +252,8 @@ function run_e2e_tests(){
     go_test_e2e -tags=e2e -timeout=15m -parallel=1 \
     ./test/e2e ./test/conformance/api/... ./test/conformance/runtime/... \
     -run "^(${test_name})$" \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --enable-alpha \
-    --enable-beta \
-    --customdomain=$subdomain \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=$?
+    ${OPENSHIFT_TEST_OPTIONS} || failed=$?
     return $failed
   fi
 
@@ -271,82 +267,55 @@ function run_e2e_tests(){
 
   go_test_e2e -tags=e2e -timeout=30m -parallel=$parallel \
     ./test/e2e ./test/conformance/api/... ./test/conformance/runtime/... \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --enable-alpha \
-    --enable-beta \
-    --customdomain=$subdomain \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=1
+    ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
  enable_feature_flags tag-header-based-routing || fail_test
  go_test_e2e -timeout=2m ./test/e2e/tagheader \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=1
+    ${OPENSHIFT_TEST_OPTIONS} || failed=1
   disable_feature_flags tag-header-based-routing || fail_test
 
   configure_cm autoscaler allow-zero-initial-scale:true || fail_test
   # wait 10 sec until sync.
   sleep 10
   go_test_e2e -timeout=2m ./test/e2e/initscale \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=1
+    ${OPENSHIFT_TEST_OPTIONS} || failed=1
   configure_cm autoscaler allow-zero-initial-scale:false || fail_test
 
   enable_feature_flags responsive-revision-gc || fail_test
   # immediate_gc
   configure_cm gc retain-since-create-time:disabled retain-since-last-active-time:disabled min-non-active-revisions:0 max-non-active-revisions:0 || fail_test
   go_test_e2e -timeout=2m ./test/e2e/gc \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=1
+    ${OPENSHIFT_TEST_OPTIONS} || failed=1
   disable_feature_flags responsive-revision-gc || fail_test
 
   # Run HPA tests
   go_test_e2e -timeout=30m -tags=hpa ./test/e2e \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=1
+    ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
   # Run init-containers test
   enable_feature_flags kubernetes.podspec-init-containers || fail_test
   go_test_e2e -timeout=2m ./test/e2e/initcontainers \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=1
+    ${OPENSHIFT_TEST_OPTIONS} || failed=1
   disable_feature_flags kubernetes.podspec-init-containers || fail_test
 
   # Run PVC test
   enable_feature_flags kubernetes.podspec-persistent-volume-claim kubernetes.podspec-persistent-volume-write kubernetes.podspec-securitycontext || fail_test
   go_test_e2e -timeout=5m ./test/e2e/pvc \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --enable-alpha \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=1
+    ${OPENSHIFT_TEST_OPTIONS} || failed=1
   disable_feature_flags kubernetes.podspec-persistent-volume-claim kubernetes.podspec-persistent-volume-write kubernetes.podspec-securitycontext || fail_test
 
   # Run the helloworld test with an image pulled into the internal registry.
   local image_to_tag=$KNATIVE_SERVING_TEST_HELLOWORLD
   oc tag -n serving-tests "$image_to_tag" "helloworld:latest" --reference-policy=local
   go_test_e2e -tags=e2e -timeout=30m ./test/e2e -run "^(TestHelloWorld)$" \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain --kubeconfig "$KUBECONFIG" \
+    ${OPENSHIFT_TEST_OPTIONS} \
     --imagetemplate "image-registry.openshift-image-registry.svc:5000/serving-tests/{{.Name}}" || failed=2
 
   # Prevent HPA from scaling to make the tests more stable
@@ -362,14 +331,8 @@ function run_e2e_tests(){
   go_test_e2e -tags=e2e -timeout=15m -failfast -parallel=1 \
     ./test/ha \
     -replicas="${OPENSHIFT_REPLICAS}" -buckets="${OPENSHIFT_BUCKETS}" -spoofinterval="10ms" \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --enable-alpha \
-    --enable-beta \
-    --customdomain=$subdomain \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=3
+    ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
   # Test gRPC via OpenShift Route.
   # * OCP Route does not work with websocket when enabling default-enable-http2. It will be fixed in the next haproxy version (OCP 4.12 or 4.13).
@@ -401,21 +364,13 @@ function run_e2e_tests(){
   # Run test with the prefix "TestGRPC".
   go_test_e2e -timeout=10m ./test/e2e -parallel=1 \
     -run "TestGRPC" \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=1
-
+    ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
   # Verify that the right sc is set by default and seccompProfile is injected on OCP >= 4.11.
   go_test_e2e -timeout=10m ./test/e2e/securedefaults -run "^(TestSecureDefaults)$" \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --enable-alpha \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=1
+    ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
   # Allow to use any seccompProfile for non default cases,
   # for more check https://docs.openshift.com/container-platform/4.12/authentication/managing-security-context-constraints.html
@@ -424,13 +379,8 @@ function run_e2e_tests(){
   # Verify that non secure settings are allowed, although not-recommended.
   # It requires scc privileged or a custom scc that allows any seccompProfile to be set.
   go_test_e2e -timeout=10m ./test/e2e/securedefaults -run "^(TestUnsafePermitted)$" \
-    --kubeconfig "$KUBECONFIG" \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
-    --enable-alpha \
-    --https \
-    --skip-cleanup-on-fail \
-    --resolvabledomain || failed=1
-
+    ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
   return $failed
 }
