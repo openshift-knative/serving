@@ -1,0 +1,62 @@
+diff --git a/vendor/knative.dev/control-protocol/pkg/certificates/reconciler/certificates.go b/vendor/knative.dev/control-protocol/pkg/certificates/reconciler/certificates.go
+--- a/vendor/knative.dev/control-protocol/pkg/certificates/reconciler/certificates.go	(revision 6cb6874ffcb27d8030025cd9a965cf942d105a86)
++++ b/vendor/knative.dev/control-protocol/pkg/certificates/reconciler/certificates.go	(date 1689835003162)
+@@ -17,6 +17,7 @@
+ package sample
+
+ import (
++	"bytes"
+ 	"context"
+ 	"crypto/rsa"
+ 	"crypto/x509"
+@@ -89,7 +90,7 @@
+ 		r.logger.Errorf("Error accessing CA certificate secret %q %q: %v", system.Namespace(), r.caSecretName, err)
+ 		return err
+ 	}
+-	caCert, caPk, err := parseAndValidateSecret(caSecret, false)
++	caCert, caPk, err := parseAndValidateSecret(caSecret, nil)
+ 	if err != nil {
+ 		r.logger.Infof("CA cert invalid: %v", err)
+
+@@ -118,7 +119,7 @@
+ 		return fmt.Errorf("unknown cert type: %v", r.secretTypeLabelName)
+ 	}
+
+-	cert, _, err := parseAndValidateSecret(secret, true, sans...)
++	cert, _, err := parseAndValidateSecret(secret, caSecret.Data[certificates.SecretCertKey], sans...)
+ 	if err != nil {
+ 		r.logger.Infof("Secret invalid: %v", err)
+ 		// Check the secret to reconcile type
+@@ -144,7 +145,7 @@
+ }
+
+ // All sans provided are required to be lower case
+-func parseAndValidateSecret(secret *corev1.Secret, shouldContainCaCert bool, sans ...string) (*x509.Certificate, *rsa.PrivateKey, error) {
++func parseAndValidateSecret(secret *corev1.Secret, caCert []byte, sans ...string) (*x509.Certificate, *rsa.PrivateKey, error) {
+ 	certBytes, ok := secret.Data[certificates.SecretCertKey]
+ 	if !ok {
+ 		return nil, nil, fmt.Errorf("missing cert bytes")
+@@ -153,10 +154,14 @@
+ 	if !ok {
+ 		return nil, nil, fmt.Errorf("missing pk bytes")
+ 	}
+-	if shouldContainCaCert {
+-		if _, ok := secret.Data[certificates.SecretCaCertKey]; !ok {
++	if caCert != nil {
++		ca, ok := secret.Data[certificates.SecretCaCertKey]
++		if !ok {
+ 			return nil, nil, fmt.Errorf("missing ca cert bytes")
+ 		}
++		if !bytes.Equal(ca, caCert) {
++			return nil, nil, fmt.Errorf("ca cert bytes changed")
++		}
+ 	}
+
+ 	cert, caPk, err := certificates.ParseCert(certBytes, pkBytes)
+@@ -210,4 +215,4 @@
+
+ 	_, hasLabel := secret.Labels[r.secretTypeLabelName]
+ 	return hasLabel
+-}
++}
+\ No newline at end of file
