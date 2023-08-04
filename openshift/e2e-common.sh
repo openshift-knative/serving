@@ -182,6 +182,15 @@ function install_knative(){
     oc delete pod -n ${SERVING_NAMESPACE} -l app=activator
     oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} activator
     echo "internal-encryption is enabled"
+  else
+    # disable internal-encryption. S-O repo would enable by default.
+    oc patch knativeserving knative-serving \
+        -n "${SERVING_NAMESPACE}" \
+        --type merge --patch '{"spec": {"config": {"network": {"internal-encryption": "false"}}}}'
+    echo "Restart activator to unmount the certificates"
+    oc delete pod -n ${SERVING_NAMESPACE} -l app=activator
+    oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} activator
+    echo "internal-encryption is disabled"
   fi
 
   header "Knative Installed successfully"
