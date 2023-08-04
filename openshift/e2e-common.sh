@@ -169,12 +169,8 @@ function install_knative(){
 
   # TODO: Only one cluster enables internal-tls but it should be enabled by default when the feature is stable.
   if [[ ${ENABLE_INTERNAL_TLS:-} == "true" ]]; then
-    oc patch knativeserving knative-serving \
-        -n "${SERVING_NAMESPACE}" \
-        --type merge --patch '{"spec": {"config": {"network": {"internal-encryption": "true"}}}}'
-    oc patch knativeserving knative-serving \
-        -n "${SERVING_NAMESPACE}" \
-        --type merge --patch '{"spec": {"config": {"kourier": {"cluster-cert-secret": "server-certs"}}}}'
+    configure_cm network internal-encryption:true || fail_test
+    configure_cm kourier cluster-cert-secret:server-certs || fail_test
     # Deploy certificates for testing TLS with cluster-local gateway
     timeout 600 '[[ $(oc get ns $SERVING_INGRESS_NAMESPACE -oname | wc -l) == 0 ]]' || return 1
     yq read --doc 1 ./test/config/tls/cert-secret.yaml | yq write - metadata.namespace ${SERVING_INGRESS_NAMESPACE} | oc apply -f -
@@ -184,9 +180,7 @@ function install_knative(){
     echo "internal-encryption is enabled"
   else
     # disable internal-encryption. S-O repo would enable by default.
-    oc patch knativeserving knative-serving \
-        -n "${SERVING_NAMESPACE}" \
-        --type merge --patch '{"spec": {"config": {"network": {"internal-encryption": "false"}}}}'
+    configure_cm network internal-encryption:false || fail_test
     echo "Restart activator to unmount the certificates"
     oc delete pod -n ${SERVING_NAMESPACE} -l app=activator
     oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} activator
