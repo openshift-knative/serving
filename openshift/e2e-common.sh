@@ -149,6 +149,12 @@ function install_serverless(){
   export GOPATH=/tmp/go
   export ON_CLUSTER_BUILDS=true
   export DOCKER_REPO_OVERRIDE=image-registry.openshift-image-registry.svc:5000/openshift-marketplace
+
+  # TODO: Remove this workaround once SO started using kourier v1.11.
+  # This workaround is necessary as release-next has serving/pull/14074, which requires net-kourier/pull/1058.
+  sed "s/kourier: knative-v1.10/kourier: knative-v1.11/" -i olm-catalog/serverless-operator/project.yaml
+  sed "s/net_kourier_artifacts_branch: release-v1.10/net_kourier_artifacts_branch: release-v1.11/" -i olm-catalog/serverless-operator/project.yaml
+
   OPENSHIFT_CI="true" make generated-files images install-serving || return $?
 
   # Create a secret for https test.
@@ -440,7 +446,7 @@ function configure_cm {
   oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch="{\"spec\": {\"config\": { \"$cm\": {$patch} }}}" || failed=1
 
   for j_property in "${!json_properties[@]}"; do
-    timeout 30 "[[ ! \$(oc get cm -n ${SYSTEM_NAMESPACE} config-$cm -o jsonpath={.data.${j_property}}) == \"${json_properties[$j_property]}\" ]]" || failed=1
+    timeout 180 "[[ ! \$(oc get cm -n ${SYSTEM_NAMESPACE} config-$cm -o jsonpath={.data.${j_property}}) == \"${json_properties[$j_property]}\" ]]" || failed=1
   done
   return $failed
 }
