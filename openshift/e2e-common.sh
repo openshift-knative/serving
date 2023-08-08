@@ -170,7 +170,10 @@ function install_knative(){
   # TODO: Only one cluster enables internal-tls but it should be enabled by default when the feature is stable.
   if [[ ${ENABLE_INTERNAL_TLS:-} == "true" ]]; then
     configure_cm network internal-encryption:true || fail_test
-    configure_cm kourier cluster-cert-secret:server-certs || fail_test
+    # As config-kourier is in ingress namespace, don't use configure_cm.
+    oc patch knativeserving knative-serving \
+        -n "${SERVING_NAMESPACE}" \
+        --type merge --patch '{"spec": {"config": {"kourier": {"cluster-cert-secret": "server-certs"}}}}'
     # Deploy certificates for testing TLS with cluster-local gateway
     timeout 600 '[[ $(oc get ns $SERVING_INGRESS_NAMESPACE -oname | wc -l) == 0 ]]' || return 1
     yq read --doc 1 ./test/config/tls/cert-secret.yaml | yq write - metadata.namespace ${SERVING_INGRESS_NAMESPACE} | oc apply -f -
