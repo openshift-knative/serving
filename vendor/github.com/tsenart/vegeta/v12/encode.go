@@ -59,7 +59,7 @@ func encodeCmd() command {
 	output := fs.String("output", "stdout", "Output file")
 
 	fs.Usage = func() {
-		fmt.Fprintf(os.Stderr, "%s\n", encodeUsage)
+		fmt.Fprintln(os.Stderr, encodeUsage)
 	}
 
 	return command{fs, func(args []string) error {

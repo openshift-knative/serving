@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"math"
 	"sort"
 	"strconv"
@@ -166,7 +167,7 @@ func (p *Plot) Close() {
 }
 
 // WriteTo writes the HTML plot to the give io.Writer.
-func (p *Plot) WriteTo(w io.Writer) (n int64, err error) {
+func (p Plot) WriteTo(w io.Writer) (n int64, err error) {
 	type dygraphsOpts struct {
 		Title       string   `json:"title"`
 		Labels      []string `json:"labels,omitempty"`
@@ -240,7 +241,7 @@ func (p *Plot) WriteTo(w io.Writer) (n int64, err error) {
 }
 
 var (
-	failures = []string{
+	reds = []string{
 		"#EE7860",
 		"#DD624E",
 		"#CA4E3E",
@@ -249,29 +250,29 @@ var (
 		"#881618",
 		"#6F050E",
 	}
-	successes = []string{
-		"#E9D758",
-		"#297373",
-		"#39393A",
-		"#A1CDF4",
-		"#593C8F",
-		"#171738",
-		"#A1674A",
+	greens = []string{
+		"#A6DA83",
+		"#84C068",
+		"#64A550",
+		"#488A3A",
+		"#2F7027",
+		"#185717",
+		"#053E0A",
 	}
 )
 
 func labelColors(labels []string) []string {
 	colors := make([]string, 0, len(labels))
 
-	var failure, success int
+	var red, green int
 	for _, label := range labels {
 		var color string
 		if strings.Contains(label, "ERROR") {
-			color = failures[failure%len(failures)]
-			failure++
+			color = reds[red%len(reds)]
+			red++
 		} else {
-			color = successes[success%len(successes)]
-			success++
+			color = greens[green%len(greens)]
+			green++
 		}
 		colors = append(colors, color)
 	}
@@ -337,7 +338,7 @@ func asset(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return io.ReadAll(file)
+	return ioutil.ReadAll(file)
 }
 
 type countingWriter struct {

@@ -44,7 +44,7 @@ func main() {
 			}
 		}
 
-		fmt.Fprintf(fs.Output(), "%s\n", examples)
+		fmt.Fprintln(fs.Output(), examples)
 	}
 
 	fs.Parse(os.Args[1:])

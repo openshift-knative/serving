@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
@@ -15,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/dnscache"
 	"golang.org/x/net/http2"
 )
 
@@ -24,11 +22,13 @@ type Attacker struct {
 	dialer     *net.Dialer
 	client     http.Client
 	stopch     chan struct{}
-	stopOnce   sync.Once
 	workers    uint64
 	maxWorkers uint64
 	maxBody    int64
 	redirects  int
+	seqmu      sync.Mutex
+	seq        uint64
+	began      time.Time
 	chunked    bool
 }
 
@@ -60,7 +60,7 @@ var (
 	// DefaultLocalAddr is the default local IP address an Attacker uses.
 	DefaultLocalAddr = net.IPAddr{IP: net.IPv4zero}
 	// DefaultTLSConfig is the default tls.Config an Attacker uses.
-	DefaultTLSConfig = &tls.Config{InsecureSkipVerify: false}
+	DefaultTLSConfig = &tls.Config{InsecureSkipVerify: true}
 )
 
 // NewAttacker returns a new Attacker with default options which are overridden
@@ -68,10 +68,10 @@ var (
 func NewAttacker(opts ...func(*Attacker)) *Attacker {
 	a := &Attacker{
 		stopch:     make(chan struct{}),
-		stopOnce:   sync.Once{},
 		workers:    DefaultWorkers,
 		maxWorkers: DefaultMaxWorkers,
 		maxBody:    DefaultMaxBody,
+		began:      time.Now(),
 	}
 
 	a.dialer = &net.Dialer{
@@ -83,7 +83,7 @@ func NewAttacker(opts ...func(*Attacker)) *Attacker {
 		Timeout: DefaultTimeout,
 		Transport: &http.Transport{
 			Proxy:               http.ProxyFromEnvironment,
-			DialContext:         a.dialer.DialContext,
+			Dial:                a.dialer.Dial,
 			TLSClientConfig:     DefaultTLSConfig,
 			MaxIdleConnsPerHost: DefaultConnections,
 			MaxConnsPerHost:     DefaultMaxConnections,
@@ -175,7 +175,7 @@ func LocalAddr(addr net.IPAddr) func(*Attacker) {
 	return func(a *Attacker) {
 		tr := a.client.Transport.(*http.Transport)
 		a.dialer.LocalAddr = &net.TCPAddr{IP: addr.IP, Zone: addr.Zone}
-		tr.DialContext = a.dialer.DialContext
+		tr.Dial = a.dialer.Dial
 	}
 }
 
@@ -187,7 +187,7 @@ func KeepAlive(keepalive bool) func(*Attacker) {
 		tr.DisableKeepAlives = !keepalive
 		if !keepalive {
 			a.dialer.KeepAlive = 0
-			tr.DialContext = a.dialer.DialContext
+			tr.Dial = a.dialer.Dial
 		}
 	}
 }
@@ -208,7 +208,6 @@ func HTTP2(enabled bool) func(*Attacker) {
 		if tr := a.client.Transport.(*http.Transport); enabled {
 			http2.ConfigureTransport(tr)
 		} else {
-			tr.ForceAttemptHTTP2 = false
 			tr.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
 		}
 	}
@@ -221,8 +220,8 @@ func H2C(enabled bool) func(*Attacker) {
 		if tr := a.client.Transport.(*http.Transport); enabled {
 			a.client.Transport = &http2.Transport{
 				AllowHTTP: true,
-				DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
-					return tr.DialContext(ctx, network, addr)
+				DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
+					return tr.Dial(network, addr)
 				},
 			}
 		}
@@ -246,18 +245,6 @@ func UnixSocket(socket string) func(*Attacker) {
 	}
 }
 
-// SessionTickets returns a functional option which configures usage of session
-// tickets for TLS session resumption.
-func SessionTickets(enabled bool) func(*Attacker) {
-	return func(a *Attacker) {
-		if enabled {
-			cf := a.client.Transport.(*http.Transport).TLSClientConfig
-			cf.SessionTicketsDisabled = false
-			cf.ClientSessionCache = tls.NewLRUClientSessionCache(0)
-		}
-	}
-}
-
 // Client returns a functional option that allows you to bring your own http.Client
 func Client(c *http.Client) func(*Attacker) {
 	return func(a *Attacker) { a.client = *c }
@@ -273,116 +260,6 @@ func ProxyHeader(h http.Header) func(*Attacker) {
 	}
 }
 
-// DNSCaching returns a functional option that enables DNS caching for
-// the given ttl. When ttl is zero cached entries will never expire.
-// When ttl is non-zero, this will start a refresh go-routine that updates
-// the cache every ttl interval. This go-routine will be stopped when the
-// attack is stopped.
-// When the ttl is negative, no caching will be performed.
-func DNSCaching(ttl time.Duration) func(*Attacker) {
-	return func(a *Attacker) {
-		if ttl < 0 {
-			return
-		}
-
-		if tr, ok := a.client.Transport.(*http.Transport); ok {
-			dial := tr.DialContext
-			if dial == nil {
-				dial = a.dialer.DialContext
-			}
-
-			resolver := &dnscache.Resolver{}
-
-			if ttl != 0 {
-				go func() {
-					refresh := time.NewTicker(ttl)
-					defer refresh.Stop()
-					for {
-						select {
-						case <-refresh.C:
-							resolver.Refresh(true)
-						case <-a.stopch:
-							return
-						}
-					}
-				}()
-			}
-
-			rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-			tr.DialContext = func(ctx context.Context, network, addr string) (conn net.Conn, err error) {
-				host, port, err := net.SplitHostPort(addr)
-				if err != nil {
-					return nil, err
-				}
-
-				ips, err := resolver.LookupHost(ctx, host)
-				if err != nil {
-					return nil, err
-				}
-
-				if len(ips) == 0 {
-					return nil, &net.DNSError{Err: "no such host", Name: addr}
-				}
-
-				// Pick a random IP from each IP family and dial each concurrently.
-				// The first that succeeds wins, the other gets canceled.
-
-				rng.Shuffle(len(ips), func(i, j int) { ips[i], ips[j] = ips[j], ips[i] })
-
-				// In place filtering of ips to only include the first IPv4 and IPv6.
-				j := 0
-				for i := 0; i < len(ips) && j < 2; i++ {
-					ip := net.ParseIP(ips[i])
-					switch {
-					case len(ip.To4()) == net.IPv4len && j == 0:
-						fallthrough
-					case len(ip) == net.IPv6len && j == 1:
-						ips[j] = ips[i]
-						j++
-					}
-				}
-				ips = ips[:j]
-
-				type result struct {
-					conn net.Conn
-					err  error
-				}
-
-				ch := make(chan result, len(ips))
-				ctx, cancel := context.WithCancel(ctx)
-				defer cancel()
-
-				for _, ip := range ips {
-					go func(ip string) {
-						conn, err := dial(ctx, network, net.JoinHostPort(ip, port))
-						if err == nil {
-							cancel()
-						}
-						ch <- result{conn, err}
-					}(ip)
-				}
-
-				for i := 0; i < cap(ch); i++ {
-					if r := <-ch; conn == nil {
-						conn, err = r.conn, r.err
-					}
-				}
-
-				return conn, err
-			}
-		}
-	}
-}
-
-type attack struct {
-	name  string
-	began time.Time
-
-	seqmu sync.Mutex
-	seq   uint64
-}
-
 // Attack reads its Targets from the passed Targeter and attacks them at
 // the rate specified by the Pacer. When the duration is zero the attack
 // runs until Stop is called. Results are sent to the returned channel as soon
@@ -395,29 +272,21 @@ func (a *Attacker) Attack(tr Targeter, p Pacer, du time.Duration, name string) <
 		workers = a.maxWorkers
 	}
 
-	atk := &attack{
-		name:  name,
-		began: time.Now(),
-	}
-
 	results := make(chan *Result)
 	ticks := make(chan struct{})
 	for i := uint64(0); i < workers; i++ {
 		wg.Add(1)
-		go a.attack(tr, atk, &wg, ticks, results)
+		go a.attack(tr, name, &wg, ticks, results)
 	}
 
 	go func() {
-		defer func() {
-			close(ticks)
-			wg.Wait()
-			close(results)
-			a.Stop()
-		}()
+		defer close(results)
+		defer wg.Wait()
+		defer close(ticks)
 
-		count := uint64(0)
+		began, count := time.Now(), uint64(0)
 		for {
-			elapsed := time.Since(atk.began)
+			elapsed := time.Since(began)
 			if du > 0 && elapsed > du {
 				return
 			}
@@ -440,7 +309,7 @@ func (a *Attacker) Attack(tr Targeter, p Pacer, du time.Duration, name string) <
 					// all workers are blocked. start one more and try again
 					workers++
 					wg.Add(1)
-					go a.attack(tr, atk, &wg, ticks, results)
+					go a.attack(tr, name, &wg, ticks, results)
 				}
 			}
 
@@ -456,49 +325,35 @@ func (a *Attacker) Attack(tr Targeter, p Pacer, du time.Duration, name string) <
 	return results
 }
 
-// Stop stops the current attack. The return value indicates whether this call
-// has signalled the attack to stop (`true` for the first call) or whether it
-// was a noop because it has been previously signalled to stop (`false` for any
-// subsequent calls).
-func (a *Attacker) Stop() bool {
+// Stop stops the current attack.
+func (a *Attacker) Stop() {
 	select {
 	case <-a.stopch:
-		return false
+		return
 	default:
-		a.stopOnce.Do(func() { close(a.stopch) })
-		return true
+		close(a.stopch)
 	}
 }
 
-func (a *Attacker) attack(tr Targeter, atk *attack, workers *sync.WaitGroup, ticks <-chan struct{}, results chan<- *Result) {
+func (a *Attacker) attack(tr Targeter, name string, workers *sync.WaitGroup, ticks <-chan struct{}, results chan<- *Result) {
 	defer workers.Done()
 	for range ticks {
-		results <- a.hit(tr, atk)
+		results <- a.hit(tr, name)
 	}
 }
 
-func (a *Attacker) hit(tr Targeter, atk *attack) *Result {
+func (a *Attacker) hit(tr Targeter, name string) *Result {
 	var (
-		res = Result{Attack: atk.name}
+		res = Result{Attack: name}
 		tgt Target
 		err error
 	)
 
-	//
-	// Subtleness ahead! We need to compute the result timestamp in
-	// the same critical section that protects the increment of the sequence
-	// number because we want the same total ordering of timestamps and sequence
-	// numbers. That is, we wouldn't want two results A and B where A.seq > B.seq
-	// but A.timestamp < B.timestamp.
-	//
-	// Additionally, we calculate the result timestamp based on the same beginning
-	// timestamp using the Add method, which will use monotonic time calculations.
-	//
-	atk.seqmu.Lock()
-	res.Timestamp = atk.began.Add(time.Since(atk.began))
-	res.Seq = atk.seq
-	atk.seq++
-	atk.seqmu.Unlock()
+	a.seqmu.Lock()
+	res.Timestamp = a.began.Add(time.Since(a.began))
+	res.Seq = a.seq
+	a.seq++
+	a.seqmu.Unlock()
 
 	defer func() {
 		res.Latency = time.Since(res.Timestamp)
@@ -520,8 +375,8 @@ func (a *Attacker) hit(tr Targeter, atk *attack) *Result {
 		return &res
 	}
 
-	if atk.name != "" {
-		req.Header.Set("X-Vegeta-Attack", atk.name)
+	if name != "" {
+		req.Header.Set("X-Vegeta-Attack", name)
 	}
 
 	req.Header.Set("X-Vegeta-Seq", strconv.FormatUint(res.Seq, 10))

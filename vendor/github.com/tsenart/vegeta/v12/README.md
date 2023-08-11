@@ -1,18 +1,10 @@
-# Vegeta [![Build Status](https://github.com/tsenart/vegeta/workflows/CI/badge.svg)](https://github.com/tsenart/vegeta/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/tsenart/vegeta)](https://goreportcard.com/report/github.com/tsenart/vegeta) [![PkgGoDev](https://pkg.go.dev/badge/github.com/tsenart/vegeta/v12/lib)](https://pkg.go.dev/github.com/tsenart/vegeta/v12/lib) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/tsenart/vegeta?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![Donate](https://img.shields.io/badge/donate-bitcoin-yellow.svg)](#donate)
+# Vegeta [![Build Status](https://github.com/tsenart/vegeta/workflows/CI/badge.svg)](https://github.com/tsenart/vegeta/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/tsenart/vegeta)](https://goreportcard.com/report/github.com/tsenart/vegeta) [![GoDoc](https://godoc.org/github.com/tsenart/vegeta?status.svg)](https://godoc.org/github.com/tsenart/vegeta) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/tsenart/vegeta?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![Donate](https://img.shields.io/badge/donate-bitcoin-yellow.svg)](#donate)
 
 Vegeta is a versatile HTTP load testing tool built out of a need to drill
-HTTP services with a constant request rate. [It's over 9000!](https://en.wikipedia.org/wiki/It's_Over_9000)
+HTTP services with a constant request rate.
+It can be used both as a command line utility and a library.
 
 ![Vegeta](http://fc09.deviantart.net/fs49/i/2009/198/c/c/ssj2_vegeta_by_trunks24.jpg)
-
-## Features
-
-- Usable as a command line tool and a Go library.
-- CLI designed with UNIX composability in mind.
-- [Avoids](https://github.com/tsenart/vegeta/pull/92/files#r20198929) nasty [Coordinated Omission](http://highscalability.com/blog/2015/10/5/your-load-generator-is-probably-lying-to-you-take-the-red-pi.html).
-- Extensive reporting functionality.
-- Simple to use for [distributed load testing](https://kubernetes.io/blog/2015/11/one-million-requests-per-second-dependable-and-dynamic-distributed-systems-at-scale/).
-- Easy to install and run (static binary, package managers, etc).
 
 ## Install
 
@@ -20,41 +12,21 @@ HTTP services with a constant request rate. [It's over 9000!](https://en.wikiped
 
 Get them [here](http://github.com/tsenart/vegeta/releases).
 
-### macOS
+### Homebrew on Mac OS X
 
-You can install Vegeta using the [Homebrew](https://github.com/Homebrew/homebrew/):
+You can install Vegeta using the [Homebrew](https://github.com/Homebrew/homebrew/) package manager on Mac OS X:
 
 ```shell
 $ brew update && brew install vegeta
 ```
 
-Or with [MacPorts](https://www.macports.org/):
-
-```shell
-$ port install vegeta
-```
-
-### Arch Linux
-
-```shell
-$ pacman -S vegeta
-```
-
-### FreeBSD
-
-On FreeBSD you can install Vegeta with the built in package manager because there is a [Vegeta Package](https://www.freshports.org/benchmarks/vegeta) available.
-
-```shell
-$ pkg install vegeta
-```
-
 ### Source
 
+You need `go` installed and `GOBIN` in your `PATH`. Once that is done, run the
+command:
+
 ```shell
-git clone https://github.com/tsenart/vegeta
-cd vegeta
-make vegeta
-mv vegeta ~/bin # Or elsewhere, up to you.
+$ go get -u github.com/tsenart/vegeta
 ```
 
 ## Versioning
@@ -64,7 +36,7 @@ Both the library and the CLI are versioned with [SemVer v2.0.0](https://semver.o
 After [v8.0.0](https://github.com/tsenart/vegeta/tree/v8.0.0), the two components
 are versioned separately to better isolate breaking changes to each.
 
-CLI releases are tagged with `cli/vMAJOR.MINOR.PATCH` and published on the [GitHub releases page](https://github.com/tsenart/vegeta/releases).
+CLI releases are tagged with `cli/vMAJOR.MINOR.PATCH` and published on the [Github releases page](https://github.com/tsenart/vegeta/releases).
 As for the library, new versions are tagged with both `lib/vMAJOR.MINOR.PATCH` and `vMAJOR.MINOR.PATCH`.
 The latter tag is required for compatibility with `go mod`.
 
@@ -79,7 +51,7 @@ Usage: vegeta [global flags] <command> [command flags]
 
 global flags:
   -cpus int
-    	Number of CPUs to use (default = number of cpus)
+    	Number of CPUs to use (defaults to the number of CPUs you have)
   -profile string
     	Enable profiling of [cpu, heap]
   -version
@@ -94,8 +66,6 @@ attack command:
     	Send body with chunked transfer encoding
   -connections int
     	Max open idle connections per target host (default 10000)
-  -dns-ttl value
-    	Cache DNS lookups for the given duration [-1 = disabled, 0 = forever] (default 0s)
   -duration duration
     	Duration of the test [0 = forever]
   -format string
@@ -118,16 +88,12 @@ attack command:
     	Read targets lazily
   -max-body value
     	Maximum number of bytes to capture from response bodies. [-1 = no limit] (default -1)
-  -max-connections int
-    	Max connections per target host
   -max-workers uint
     	Maximum number of workers (default 18446744073709551615)
   -name string
     	Attack name
   -output string
     	Output file (default "stdout")
-  -prometheus-addr string
-    	Prometheus exporter listen address [empty = disabled]. Example: 0.0.0.0:8880
   -proxy-header value
     	Proxy CONNECT header
   -rate value
@@ -138,8 +104,6 @@ attack command:
     	List of addresses (ip:port) to use for DNS resolution. Disables use of local system DNS. (comma separated list)
   -root-certs value
     	TLS root certificate files (comma separated list)
-  -session-tickets
-    	Enable TLS session resumption using session tickets
   -targets string
     	Targets file (default "stdin")
   -timeout duration
@@ -178,7 +142,6 @@ examples:
   vegeta report -type=json results.bin > metrics.json
   cat results.bin | vegeta plot > plot.html
   cat results.bin | vegeta report -type="hist[0,100ms,200ms,300ms]"
-
 ```
 
 #### `-cpus`
@@ -214,15 +177,6 @@ Specifies whether to send request bodies with the chunked transfer encoding.
 #### `-connections`
 
 Specifies the maximum number of idle open connections per target host.
-
-#### `-dns-ttl`
-
-Specifies the duration to cache DNS lookups for. A zero value caches forever.
-A negative value disables caching altogether.
-
-#### `-max-connections`
-
-Specifies the maximum number of connections per target host.
 
 #### `-duration`
 
@@ -303,7 +257,7 @@ Lines starting with `#` are ignored.
 ```
 # get a dragon ball
 GET http://goku:9090/path/to/dragon?item=ball
-# specify a test account
+# specify a test accout
 X-Account-ID: 99
 ```
 
@@ -348,7 +302,7 @@ The trade-off is one of added latency in each hit against the targets.
 
 Specifies the maximum number of bytes to capture from the body of each
 response. Remaining unread bytes will be fully read but discarded.
-Set to -1 for no limit. It knows how to interpret values like these:
+Set to -1 for no limit. It knows how to intepret values like these:
 
 - `"10 MB"` -> `10MB`
 - `"10240 g"` -> `10TB`
@@ -397,10 +351,6 @@ the ones configured by the operating system. Works only on non Windows systems.
 Specifies the trusted TLS root CAs certificate files as a comma separated
 list. If unspecified, the default system CAs certificates will be used.
 
-#### `-session-tickets`
-
-Specifies whether to support TLS session resumption using session tickets.
-
 #### `-targets`
 
 Specifies the file from which to read targets, defaulting to stdin.
@@ -408,7 +358,8 @@ See the [`-format`](#-format) section to learn about the different target format
 
 #### `-timeout`
 
-Specifies the timeout for each request. A value of `0` disables timeouts.
+Specifies the timeout for each request. The default is 0 which disables
+timeouts.
 
 #### `-workers`
 
@@ -691,9 +642,6 @@ The CSV encoder doesn't write a header. The columns written by it are:
   7. Base64 encoded response body
   8. Attack name
   9. Sequence number of request
-  10. Method
-  11. URL
-  12. Base64 encoded response headers
 
 Arguments:
   <file>  A file with vegeta attack results encoded with one of
@@ -786,8 +734,6 @@ It'll read and sort them by timestamp before generating reports.
 vegeta report *.bin
 ```
 
-Another way to gather results in distributed tests is to use the built-in Prometheus Exporter and configure a Prometheus Server to get test results from all Vegeta instances. See `attack` option "prometheus-addr" for more details and a complete example in the section "Prometheus Support".
-
 ## Usage: Real-time Analysis
 
 If you are a happy user of iTerm, you can integrate vegeta with [jplot](https://github.com/rs/jplot) using [jaggr](https://github.com/rs/jaggr) to plot a vegeta report in real-time in the comfort of your terminal:
@@ -807,7 +753,7 @@ echo 'GET http://localhost:8080' | \
 
 ![](https://i.imgur.com/ttBDsQS.gif)
 
-## Usage: Library
+## Usage (Library)
 
 The library versioning follows [SemVer v2.0.0](https://semver.org/spec/v2.0.0.html).
 Since [lib/v9.0.0](https://github.com/tsenart/vegeta/tree/lib/v9.0.0), the library and cli
@@ -863,36 +809,6 @@ $ ulimit -u # processes / threads
 ```
 
 Just pass a new number as the argument to change it.
-
-## Prometheus support
-
-Vegeta has a built-in Prometheus Exporter that may be enabled during attacks so that you can point any Prometheus instance to Vegeta attack processes and monitor attack metrics.
-
-To enable the Prometheus Exporter on the command line, set the "prometheus-addr" flag.
-
-A Prometheus HTTP endpoint will be available only during the lifespan of an attack and will be closed right after the attack is finished.
-
-The following metrics are exposed:
-
-* `request_bytes_in` - bytes count received from targeted servers by "url", "method" and "status"
-* `request_bytes_out` - bytes count sent to targeted server by "url", "method" and "status"
-* `request_seconds` - histogram with request latency and counters by "url", "method" and "status"
-* `request_fail_count` - count of failed requests by "url", "method", "status" and "message"
-
-<image src="lib/prom/prometheus-sample.png" width="500" />
-
-Check file [lib/prom/grafana.json](lib/prom/grafana.json) with the source of this sample dashboard in Grafana.
-
-### Limitations
-
-1. Prometheus scrapes metrics from a running vegeta attack process and assigns timestamps to samples on its server. This means result timestamps aren't accurate (i.e. they're scraping time, not result time).
-2. Configuring Prometheus to scrape vegeta needs to happen out-of-band. That's a hassle!
-3. Since there's no coordination between a vegeta attack process and a Prometheus server, an attack process will finish before Prometheus has the chance to scrape the latest observations.
-
-
-Why aren't we using pushgateway instead? See [this comment](https://github.com/tsenart/vegeta/pull/534#issuecomment-1629943731).
-
-There's [an issue](https://github.com/tsenart/vegeta/issues/637) tracking the proper solution to all these limitations which is a remote write integration.
 
 ## License
 
