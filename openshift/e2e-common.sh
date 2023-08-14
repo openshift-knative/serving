@@ -90,16 +90,6 @@ function wait_until_hostname_resolves() {
   return 1
 }
 
-# Loops until duration (car) is exceeded or command (cdr) returns non-zero
-function timeout() {
-  SECONDS=0; TIMEOUT=$1; shift
-  while eval $*; do
-    sleep 5
-    [[ $SECONDS -gt $TIMEOUT ]] && echo "ERROR: Timed out" && return 1
-  done
-  return 0
-}
-
 function serverless_operator_version {
   if [[ "$branch" == "knative-v1.7" ]]; then
     echo 'release-1.28'
@@ -170,7 +160,10 @@ function install_knative(){
   # TODO: Only one cluster enables internal-tls but it should be enabled by default when the feature is stable.
   if [[ ${ENABLE_INTERNAL_TLS:-} == "true" ]]; then
     configure_cm network internal-encryption:true || fail_test
-    configure_cm kourier cluster-cert-secret:server-certs || fail_test
+    # As config-kourier is in ingress namespace, don't use configure_cm.
+    oc patch knativeserving knative-serving \
+        -n "${SERVING_NAMESPACE}" \
+        --type merge --patch '{"spec": {"config": {"kourier": {"cluster-cert-secret": "server-certs"}}}}'
     # Deploy certificates for testing TLS with cluster-local gateway
     timeout 600 '[[ $(oc get ns $SERVING_INGRESS_NAMESPACE -oname | wc -l) == 0 ]]' || return 1
     yq read --doc 1 ./test/config/tls/cert-secret.yaml | yq write - metadata.namespace ${SERVING_INGRESS_NAMESPACE} | oc apply -f -
@@ -419,28 +412,5 @@ function disable_feature_flags {
   done
   # Allow settings to be picked up
   sleep 30
-  return $failed
-}
-
-function configure_cm {
-  local failed=0
-  local cm="$1"
-  local patch=""
-  declare -A json_properties
-
-  for property in "${@:2}"; do
-    KEY="${property%%:*}"
-    VALUE="${property##*:}"
-    patch=${patch:+$patch,}"\"$KEY\": \"$VALUE\""
-    # escape in case property contains dots eg. kubernetes.pod-spec
-    j_property="$(echo "'$KEY'" | sed "s/\./\\\./g")"
-    json_properties["$j_property"]="$VALUE"
-  done
-
-  oc -n ${SYSTEM_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch="{\"spec\": {\"config\": { \"$cm\": {$patch} }}}" || failed=1
-
-  for j_property in "${!json_properties[@]}"; do
-    timeout 30 "[[ ! \$(oc get cm -n ${SYSTEM_NAMESPACE} config-$cm -o jsonpath={.data.${j_property}}) == \"${json_properties[$j_property]}\" ]]" || failed=1
-  done
   return $failed
 }
