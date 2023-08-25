@@ -7,6 +7,9 @@ ADD openshift/ci-operator/build-image/kubernetes.repo /etc/yum.repos.d/
 
 RUN yum install -y kubectl httpd-tools
 
+# Serverless-Operator `make generated-files` needs helm
+RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
 RUN GOFLAGS='' go install github.com/mikefarah/yq/v3@latest
 RUN GOFLAGS='' go install knative.dev/test-infra/tools/kntest/cmd/kntest@latest
 
