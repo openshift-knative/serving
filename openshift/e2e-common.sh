@@ -101,6 +101,9 @@ function timeout() {
 }
 
 function serverless_operator_version {
+
+  local branch_name="$(current_branch)"
+
   if [[ "$branch_name" == "release-v1.7" ]]; then
     echo 'release-1.28'
   elif [[ "$branch_name" == "release-v1.8" ]]; then
