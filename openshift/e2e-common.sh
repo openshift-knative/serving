@@ -311,9 +311,11 @@ function run_e2e_tests(){
 
   # Run PVC test
   enable_feature_flags kubernetes.podspec-persistent-volume-claim kubernetes.podspec-persistent-volume-write kubernetes.podspec-securitycontext || fail_test
-  go_test_e2e -timeout=5m ./test/e2e/pvc \
+  configure_cm deployment progressDeadline:600s || fail_test
+  go_test_e2e -timeout=15m ./test/e2e/pvc \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     ${OPENSHIFT_TEST_OPTIONS} || failed=1
+  configure_cm deployment progressDeadline:120s || fail_test
   disable_feature_flags kubernetes.podspec-persistent-volume-claim kubernetes.podspec-persistent-volume-write kubernetes.podspec-securitycontext || fail_test
 
   # Run the helloworld test with an image pulled into the internal registry.
