@@ -2,8 +2,9 @@ module knative.dev/serving
 
 // This comment was added so CI would trigger a point release with a
 // newer version of Go
-// Fixes: https://groups.google.com/g/golang-announce/c/iNNxDTCjZvo
-
+// Fixes:
+// - https://groups.google.com/g/golang-announce/c/iNNxDTCjZvo
+// - https://github.com/knative/serving/issues/14732
 go 1.18
 
 require (
@@ -28,7 +29,7 @@ require (
 	golang.org/x/sync v0.2.0
 	golang.org/x/time v0.3.0
 	google.golang.org/api v0.124.0
-	google.golang.org/grpc v1.56.1
+	google.golang.org/grpc v1.56.3
 	k8s.io/api v0.26.5
 	k8s.io/apiextensions-apiserver v0.26.5
 	k8s.io/apimachinery v0.26.5
