@@ -50,7 +50,7 @@ index 13464e22b..5cc2e3fbe 100644
  	_ "k8s.io/code-generator/cmd/deepcopy-gen"
  	_ "k8s.io/code-generator/cmd/defaulter-gen"
 diff --git a/openshift/ci-operator/Dockerfile.in b/openshift/ci-operator/Dockerfile.in
-index 32b94bfb1..ce192d43d 100644
+index 1c31865cc..7bd47161b 100644
 --- a/openshift/ci-operator/Dockerfile.in
 +++ b/openshift/ci-operator/Dockerfile.in
 @@ -2,7 +2,7 @@
@@ -60,10 +60,10 @@ index 32b94bfb1..ce192d43d 100644
 -RUN make install test-install
 +RUN make install test-install perf-install
  
- FROM openshift/origin-base
+ FROM registry.access.redhat.com/ubi8/ubi-minimal
  USER 65532
 diff --git a/openshift/ci-operator/Dockerfile_with_kodata.in b/openshift/ci-operator/Dockerfile_with_kodata.in
-index 00de72095..0422ce541 100644
+index 9d84e5ecc..572d91c25 100644
 --- a/openshift/ci-operator/Dockerfile_with_kodata.in
 +++ b/openshift/ci-operator/Dockerfile_with_kodata.in
 @@ -2,7 +2,7 @@
@@ -73,7 +73,7 @@ index 00de72095..0422ce541 100644
 -RUN make install test-install
 +RUN make install test-install perf-install
  
- FROM openshift/origin-base
+ FROM registry.access.redhat.com/ubi8/ubi-minimal
  USER 65532
 diff --git a/test/performance/profiling.md b/test/performance/PROFILING.md
 similarity index 100%
