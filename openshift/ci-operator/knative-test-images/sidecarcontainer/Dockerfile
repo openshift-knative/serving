@@ -1,10 +1,10 @@
 # Do not edit! This file was generated via Makefile
-FROM registry.ci.openshift.org/openshift/release:golang-1.19 as builder
+FROM registry.ci.openshift.org/openshift/release:golang-1.21 as builder
 
 COPY . .
 RUN make install test-install
 
-FROM openshift/origin-base
+FROM registry.access.redhat.com/ubi8/ubi-minimal
 USER 65532
 
 COPY --from=builder /go/bin/sidecarcontainer /ko-app/sidecarcontainer
