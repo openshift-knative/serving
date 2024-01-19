@@ -6,7 +6,7 @@ COPY . .
 RUN ./openshift/in-docker-patch.sh
 RUN make perf-install
 
-FROM openshift/origin-base
+FROM registry.access.redhat.com/ubi8/ubi-minimal
 USER 65532
 
 COPY --from=builder /go/bin/scale-from-zero /ko-app/scale-from-zero
