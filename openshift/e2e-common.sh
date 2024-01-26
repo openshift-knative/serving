@@ -130,11 +130,13 @@ function install_serverless(){
   # Use the absolute path for KNATIVE_SERVING_MANIFESTS_DIR. It is used in `make generated-files`.
   export KNATIVE_SERVING_MANIFESTS_DIR="$(pwd)/openshift/release/artifacts"
 
-  if ! git clone -b $(serverless_operator_version) --depth 1 https://github.com/openshift-knative/serverless-operator.git ${SERVERLESS_DIR}; then
-     # As serving branch cuts before SO branch so it fails to clone the branch in the meantime.
-     echo "Failed to clone $(serverless_operator_version) SO branch. Use main branch."
-     git clone --depth 1 https://github.com/openshift-knative/serverless-operator.git ${SERVERLESS_DIR}
-  fi
+#  if ! git clone -b $(serverless_operator_version) --depth 1 https://github.com/openshift-knative/serverless-operator.git ${SERVERLESS_DIR}; then
+#     # As serving branch cuts before SO branch so it fails to clone the branch in the meantime.
+#     echo "Failed to clone $(serverless_operator_version) SO branch. Use main branch."
+#     git clone --depth 1 https://github.com/openshift-knative/serverless-operator.git ${SERVERLESS_DIR}
+#  fi
+
+  git clone -b fix_certificate_rbac --depth 1 https://github.com/skonto/serverless-operator.git ${SERVERLESS_DIR}
   pushd ${SERVERLESS_DIR}
 
   source ./test/lib.bash
