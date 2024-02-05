@@ -53,11 +53,6 @@ jobs:
         with:
           path: ./src/github.com/${{ github.repository }}
 
-      - name: Setup Golang
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: ./src/github.com/${{ github.repository }}/go.mod
-
       - name: Install Tools
         working-directory: ./src/github.com/${{ github.repository }}
         env:
