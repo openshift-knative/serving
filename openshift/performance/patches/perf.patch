@@ -36,30 +36,30 @@ index 57d918069..4da396560 100644
 
  # Generate an aggregated knative yaml file with replaced image references
 diff --git a/openshift/ci-operator/Dockerfile.in b/openshift/ci-operator/Dockerfile.in
-index 32b94bfb1..ce192d43d 100644
+index 8306bc91c..81265fa7a 100644
 --- a/openshift/ci-operator/Dockerfile.in
 +++ b/openshift/ci-operator/Dockerfile.in
 @@ -2,7 +2,7 @@
- FROM registry.ci.openshift.org/openshift/release:golang-1.21 as builder
+ FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.21-builder-multi-openshift-4.16 as builder
 
  COPY . .
 -RUN make install test-install
 +RUN make install test-install perf-install
 
- FROM registry.access.redhat.com/ubi8/ubi-minimal
+ FROM registry.access.redhat.com/ubi9/ubi-minimal
  USER 65532
 diff --git a/openshift/ci-operator/Dockerfile_with_kodata.in b/openshift/ci-operator/Dockerfile_with_kodata.in
-index 00de72095..0422ce541 100644
+index 3ab06ce3b..334c60534 100644
 --- a/openshift/ci-operator/Dockerfile_with_kodata.in
 +++ b/openshift/ci-operator/Dockerfile_with_kodata.in
 @@ -2,7 +2,7 @@
- FROM registry.ci.openshift.org/openshift/release:golang-1.21 as builder
+ FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.21-builder-multi-openshift-4.16 as builder
 
  COPY . .
 -RUN make install test-install
 +RUN make install test-install perf-install
 
- FROM registry.access.redhat.com/ubi8/ubi-minimal
+ FROM registry.access.redhat.com/ubi9/ubi-minimal
  USER 65532
 diff --git a/test/performance/README.md b/test/performance/README.md
 index a4906039a..f17f7cffc 100644
