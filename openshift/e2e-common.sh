@@ -94,27 +94,15 @@ function serverless_operator_version {
 
   local branch_name="$(current_branch)"
 
-  if [[ "$branch_name" == "release-v1.7" ]]; then
-    echo 'release-1.28'
-  elif [[ "$branch_name" == "release-v1.8" ]]; then
-    echo 'release-1.29'
-  elif [[ "$branch_name" == "release-v1.9" ]]; then
-    echo 'release-1.30'
-  elif [[ "$branch_name" == "release-v1.10" ]]; then
-    echo 'release-1.31'
-  elif [[ "$branch_name" == "release-v1.11" ]]; then
-    echo 'release-1.32'
-  elif [[ "$branch_name" == "release-v1.12" ]]; then
-    echo 'release-1.33'
-  elif [[ "$branch_name" == "release-v1.13" ]]; then
+  if [[ "$branch_name" == "release-v1.14" ]]; then
     echo 'release-1.34'
-  elif [[ "$branch_name" == "release-v1.14" ]]; then
-    echo 'release-1.35'
   elif [[ "$branch_name" == "release-v1.15" ]]; then
-    echo 'release-1.36'
+    echo 'release-1.35'
   elif [[ "$branch_name" == "release-v1.16" ]]; then
-    echo 'release-1.37'
+    echo 'release-1.36'
   elif [[ "$branch_name" == "release-v1.17" ]]; then
+    echo 'release-1.37'
+  elif [[ "$branch_name" == "release-v1.18" ]]; then
     echo 'release-1.38'
   else
     echo 'main'
