@@ -1,5 +1,5 @@
 # Do not edit! This file was generated via Makefile
-FROM registry.ci.openshift.org/openshift/release:golang-1.21 as builder
+FROM registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.21-openshift-4.16 as builder
 
 COPY . .
 
