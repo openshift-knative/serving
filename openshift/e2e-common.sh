@@ -118,7 +118,8 @@ function install_serverless(){
   # Use the absolute path for KNATIVE_SERVING_MANIFESTS_DIR. It is used in `make generated-files`.
   export KNATIVE_SERVING_MANIFESTS_DIR="$(pwd)/openshift/release/artifacts"
 
-  if ! git clone -b $(serverless_operator_version) --depth 1 https://github.com/openshift-knative/serverless-operator.git ${SERVERLESS_DIR}; then
+  # TODO UNDO ME:
+  if ! git clone -b serving-tls --depth 1 https://github.com/retocode/serverless-operator.git ${SERVERLESS_DIR}; then
      # As serving branch cuts before SO branch so it fails to clone the branch in the meantime.
      echo "Failed to clone $(serverless_operator_version) SO branch. Use main branch."
      git clone --depth 1 https://github.com/openshift-knative/serverless-operator.git ${SERVERLESS_DIR}
@@ -130,14 +131,55 @@ function install_serverless(){
   export GOPATH=/tmp/go
   export ON_CLUSTER_BUILDS=true
   export DOCKER_REPO_OVERRIDE=image-registry.openshift-image-registry.svc:5000/openshift-marketplace
-  #TODO: enable back when we have the feature ready again downstream
-  sed -i 's/internal-encryption: "true"/internal-encryption: "false"/g' ./test/v1beta1/resources/operator.knative.dev_v1beta1_knativeserving_cr.yaml
   OPENSHIFT_CI="true" make generated-files images install-serving || return $?
 
   # Create a secret for https test.
   trust_router_ca || return $?
   popd
 }
+
+#function timeout {
+#  local seconds timeout
+#  timeout="${1:?Pass a timeout as arg[1]}"
+#  interval="${interval:-1}"
+#  seconds=0
+#  shift
+#  ln=' ' echo "${*} : Waiting until non-zero (max ${timeout} sec.)"
+#  while (eval "$*" 2>/dev/null); do
+#    seconds=$(( seconds + interval ))
+#    echo -n '.'
+#    sleep "$interval"
+#    [[ $seconds -gt $timeout ]] && echo '' \
+#      && echo "Time out of ${timeout} exceeded" \
+#      && return 71
+#  done
+#  [[ $seconds -gt 0 ]] && echo -n ' '
+#  echo 'done'
+#  return 0
+#}
+#
+#
+#function configure_cm {
+#  local cm="$1"
+#  local patch=""
+#  declare -A json_properties
+#
+#  for property in "${@:2}"; do
+#    KEY="${property%%:*}"
+#    VALUE="${property##*:}"
+#    patch=${patch:+$patch,}"\"$KEY\": \"$VALUE\""
+#    # escape in case property contains dots eg. kubernetes.pod-spec
+#    j_property="$(echo "'$KEY'" | sed "s/\./\\\./g")"
+#    json_properties["$j_property"]="$VALUE"
+#  done
+#
+#  oc -n ${SERVING_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch="{\"spec\": {\"config\": { \"$cm\": {$patch} }}}"
+#
+#  for j_property in "${!json_properties[@]}"; do
+#    timeout 30 "[[ ! \$(oc get cm -n ${SERVING_NAMESPACE} config-$cm -o jsonpath={.data.${j_property}}) == \"${json_properties[$j_property]}\" ]]"
+#  done
+#}
+
 
 function install_knative(){
   install_serverless || return $?
@@ -150,30 +192,36 @@ function install_knative(){
   wait_until_service_has_external_ip $SERVING_INGRESS_NAMESPACE kourier || fail_test "Ingress has no external IP"
   wait_until_hostname_resolves "$(kubectl get svc -n $SERVING_INGRESS_NAMESPACE kourier -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
 
-  # TODO: Only one cluster enables internal-tls but it should be enabled by default when the feature is stable.
-  if [[ ${ENABLE_INTERNAL_TLS:-} == "true" ]]; then
-    configure_cm network internal-encryption:true || fail_test
-    # As config-kourier is in ingress namespace, don't use configure_cm.
-    oc patch knativeserving knative-serving \
-        -n "${SERVING_NAMESPACE}" \
-        --type merge --patch '{"spec": {"config": {"kourier": {"cluster-cert-secret": "server-certs"}}}}'
-    # Deploy certificates for testing TLS with cluster-local gateway
-    timeout 600 '[[ $(oc get ns $SERVING_INGRESS_NAMESPACE -oname | wc -l) == 0 ]]' || return 1
-    yq read --doc 1 ./test/config/tls/cert-secret.yaml | yq write - metadata.namespace ${SERVING_INGRESS_NAMESPACE} | oc apply -f -
+  if [[ ${ENABLE_TLS:-} == "true" ]]; then
+    configure_cm network system-internal-tls:enabled || fail_test
+    configure_cm network cluster-local-domain-tls:enabled || fail_test
+
     echo "Restart activator to mount the certificates"
     oc delete pod -n ${SERVING_NAMESPACE} -l app=activator
     oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} activator
-    echo "internal-encryption is enabled"
+
+    echo "Restart controller to enable cert-manager integration"
+    oc delete pod -n ${SERVING_NAMESPACE} -l app=controller
+    oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} controller
+
+    echo "cluster-local-domain-tls and system-internal-tls are ENABLED"
   else
     # disable internal-encryption. S-O repo would enable by default.
-    configure_cm network internal-encryption:false || fail_test
+    configure_cm network system-internal-tls:disabled || fail_test
+    configure_cm network cluster-local-domain-tls:disabled || fail_test
+
     echo "Restart activator to unmount the certificates"
     oc delete pod -n ${SERVING_NAMESPACE} -l app=activator
     oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} activator
-    echo "internal-encryption is disabled"
+
+    echo "Restart controller to disable cert-manager integration"
+    oc delete pod -n ${SERVING_NAMESPACE} -l app=controller
+    oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} controller
+
+    echo "cluster-local-domain-tls and system-internal-tls are DISABLED"
   fi
 
-  header "Knative Installed successfully"
+  header "Successfully installed Knative"
 }
 
 function prepare_knative_serving_tests_nightly {
@@ -195,15 +243,6 @@ function prepare_knative_serving_tests_nightly {
   export GATEWAY_OVERRIDE=kourier
   export GATEWAY_NAMESPACE_OVERRIDE="$SERVING_INGRESS_NAMESPACE"
   export INGRESS_CLASS=kourier.ingress.networking.knative.dev
-
-  if [[ ${ENABLE_INTERNAL_TLS} == "true" ]]; then
-    # Deploy CA cert for testing TLS with cluster-local gateway
-    yq read --doc 0 ./test/config/tls/cert-secret.yaml | oc apply -f -
-    # This needs to match the name of Secret in test/config/tls/cert-secret.yaml
-    export CA_CERT=ca-cert
-    # This needs to match $san from test/config/tls/generate.sh
-    export SERVER_NAME=knative.dev
-  fi
 }
 
 function run_e2e_tests(){
