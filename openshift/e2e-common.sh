@@ -151,13 +151,13 @@ function install_knative(){
     configure_cm network system-internal-tls:enabled || fail_test
     configure_cm network cluster-local-domain-tls:enabled || fail_test
 
-    echo "Restart activator to mount the certificates"
-    oc delete pod -n ${SERVING_NAMESPACE} -l app=activator
-    oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} activator
-
     echo "Restart controller to enable cert-manager integration"
     oc delete pod -n ${SERVING_NAMESPACE} -l app=controller
     oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} controller
+
+    echo "Restart activator to mount the certificates"
+    oc delete pod -n ${SERVING_NAMESPACE} -l app=activator
+    oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} activator
 
     echo "cluster-local-domain-tls and system-internal-tls are ENABLED"
   else
