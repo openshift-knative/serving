@@ -133,64 +133,19 @@ function install_serverless(){
   export DOCKER_REPO_OVERRIDE=image-registry.openshift-image-registry.svc:5000/openshift-marketplace
   OPENSHIFT_CI="true" make generated-files images install-serving || return $?
 
-  # Create a secret for https test.
-  trust_router_ca || return $?
   popd
 }
-
-#function timeout {
-#  local seconds timeout
-#  timeout="${1:?Pass a timeout as arg[1]}"
-#  interval="${interval:-1}"
-#  seconds=0
-#  shift
-#  ln=' ' echo "${*} : Waiting until non-zero (max ${timeout} sec.)"
-#  while (eval "$*" 2>/dev/null); do
-#    seconds=$(( seconds + interval ))
-#    echo -n '.'
-#    sleep "$interval"
-#    [[ $seconds -gt $timeout ]] && echo '' \
-#      && echo "Time out of ${timeout} exceeded" \
-#      && return 71
-#  done
-#  [[ $seconds -gt 0 ]] && echo -n ' '
-#  echo 'done'
-#  return 0
-#}
-#
-#
-#function configure_cm {
-#  local cm="$1"
-#  local patch=""
-#  declare -A json_properties
-#
-#  for property in "${@:2}"; do
-#    KEY="${property%%:*}"
-#    VALUE="${property##*:}"
-#    patch=${patch:+$patch,}"\"$KEY\": \"$VALUE\""
-#    # escape in case property contains dots eg. kubernetes.pod-spec
-#    j_property="$(echo "'$KEY'" | sed "s/\./\\\./g")"
-#    json_properties["$j_property"]="$VALUE"
-#  done
-#
-#  oc -n ${SERVING_NAMESPACE} patch knativeserving/knative-serving --type=merge --patch="{\"spec\": {\"config\": { \"$cm\": {$patch} }}}"
-#
-#  for j_property in "${!json_properties[@]}"; do
-#    timeout 30 "[[ ! \$(oc get cm -n ${SERVING_NAMESPACE} config-$cm -o jsonpath={.data.${j_property}}) == \"${json_properties[$j_property]}\" ]]"
-#  done
-#}
-
 
 function install_knative(){
   install_serverless || return $?
 
   # To enable gRPC and HTTP2 tests without OCP Route.
-  oc patch knativeserving knative-serving \
-      -n "${SERVING_NAMESPACE}" \
-      --type merge --patch '{"spec": {"ingress": {"kourier": {"service-type": "LoadBalancer"}}}}'
-
-  wait_until_service_has_external_ip $SERVING_INGRESS_NAMESPACE kourier || fail_test "Ingress has no external IP"
-  wait_until_hostname_resolves "$(kubectl get svc -n $SERVING_INGRESS_NAMESPACE kourier -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+#  oc patch knativeserving knative-serving \
+#      -n "${SERVING_NAMESPACE}" \
+#      --type merge --patch '{"spec": {"ingress": {"kourier": {"service-type": "LoadBalancer"}}}}'
+#
+#  wait_until_service_has_external_ip $SERVING_INGRESS_NAMESPACE kourier || fail_test "Ingress has no external IP"
+#  wait_until_hostname_resolves "$(kubectl get svc -n $SERVING_INGRESS_NAMESPACE kourier -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
 
   if [[ ${ENABLE_TLS:-} == "true" ]]; then
     configure_cm network system-internal-tls:enabled || fail_test
