@@ -133,6 +133,9 @@ function install_serverless(){
   export DOCKER_REPO_OVERRIDE=image-registry.openshift-image-registry.svc:5000/openshift-marketplace
   OPENSHIFT_CI="true" make generated-files images install-serving || return $?
 
+ # Ensure tests trust the OpenShift router CA
+  trust_router_ca || return $?
+
   popd
 }
 
@@ -140,12 +143,12 @@ function install_knative(){
   install_serverless || return $?
 
   # To enable gRPC and HTTP2 tests without OCP Route.
-#  oc patch knativeserving knative-serving \
-#      -n "${SERVING_NAMESPACE}" \
-#      --type merge --patch '{"spec": {"ingress": {"kourier": {"service-type": "LoadBalancer"}}}}'
-#
-#  wait_until_service_has_external_ip $SERVING_INGRESS_NAMESPACE kourier || fail_test "Ingress has no external IP"
-#  wait_until_hostname_resolves "$(kubectl get svc -n $SERVING_INGRESS_NAMESPACE kourier -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+  oc patch knativeserving knative-serving \
+      -n "${SERVING_NAMESPACE}" \
+      --type merge --patch '{"spec": {"ingress": {"kourier": {"service-type": "LoadBalancer"}}}}'
+
+  wait_until_service_has_external_ip $SERVING_INGRESS_NAMESPACE kourier || fail_test "Ingress has no external IP"
+  wait_until_hostname_resolves "$(kubectl get svc -n $SERVING_INGRESS_NAMESPACE kourier -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
 
   if [[ ${ENABLE_TLS:-} == "true" ]]; then
     configure_cm network system-internal-tls:enabled || fail_test
