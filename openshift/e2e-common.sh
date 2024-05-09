@@ -312,6 +312,12 @@ function run_e2e_tests(){
   configure_cm deployment progressDeadline:120s || fail_test
   disable_feature_flags kubernetes.podspec-persistent-volume-claim kubernetes.podspec-persistent-volume-write kubernetes.podspec-securitycontext || fail_test
 
+  enable_feature_flags multi-container-probing || fail_test
+  go_test_e2e -timeout=2m ./test/e2e/multicontainerprobing \
+    --imagetemplate "$TEST_IMAGE_TEMPLATE" \
+    ${OPENSHIFT_TEST_OPTIONS} || failed=$?
+  disable_feature_flags multi-container-probing || fail_test
+
   # Run the helloworld test with an image pulled into the internal registry.
   local image_to_tag=$KNATIVE_SERVING_TEST_HELLOWORLD
   oc tag -n serving-tests "$image_to_tag" "helloworld:latest" --reference-policy=local
