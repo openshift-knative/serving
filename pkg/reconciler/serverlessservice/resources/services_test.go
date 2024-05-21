@@ -183,11 +183,10 @@ func TestMakePublicService(t *testing.T) {
 		}),
 		want: svc(networking.ServiceTypePublic, func(s *corev1.Service) {
 			s.Spec.Ports = []corev1.ServicePort{{
-				Name:        pkgnet.ServicePortNameH2C,
-				Protocol:    corev1.ProtocolTCP,
-				AppProtocol: &pkgnet.AppProtocolH2C,
-				Port:        pkgnet.ServiceHTTP2Port,
-				TargetPort:  intstr.FromInt(networking.BackendHTTP2Port),
+				Name:       pkgnet.ServicePortNameH2C,
+				Protocol:   corev1.ProtocolTCP,
+				Port:       pkgnet.ServiceHTTP2Port,
+				TargetPort: intstr.FromInt(networking.BackendHTTP2Port),
 			}, {
 				Name:       pkgnet.ServicePortNameHTTPS,
 				Protocol:   corev1.ProtocolTCP,
@@ -204,11 +203,10 @@ func TestMakePublicService(t *testing.T) {
 		}),
 		want: svc(networking.ServiceTypePublic, func(s *corev1.Service) {
 			s.Spec.Ports = []corev1.ServicePort{{
-				Name:        pkgnet.ServicePortNameH2C,
-				Protocol:    corev1.ProtocolTCP,
-				AppProtocol: &pkgnet.AppProtocolH2C,
-				Port:        pkgnet.ServiceHTTP2Port,
-				TargetPort:  intstr.FromInt(networking.BackendHTTP2Port),
+				Name:       pkgnet.ServicePortNameH2C,
+				Protocol:   corev1.ProtocolTCP,
+				Port:       pkgnet.ServiceHTTP2Port,
+				TargetPort: intstr.FromInt(networking.BackendHTTP2Port),
 			}, {
 				Name:       pkgnet.ServicePortNameHTTPS,
 				Protocol:   corev1.ProtocolTCP,
@@ -225,11 +223,10 @@ func TestMakePublicService(t *testing.T) {
 		}),
 		want: svc(networking.ServiceTypePublic, func(s *corev1.Service) {
 			s.Spec.Ports = []corev1.ServicePort{{
-				Name:        pkgnet.ServicePortNameH2C,
-				Protocol:    corev1.ProtocolTCP,
-				AppProtocol: &pkgnet.AppProtocolH2C,
-				Port:        pkgnet.ServiceHTTP2Port,
-				TargetPort:  intstr.FromInt(networking.BackendHTTP2Port),
+				Name:       pkgnet.ServicePortNameH2C,
+				Protocol:   corev1.ProtocolTCP,
+				Port:       pkgnet.ServiceHTTP2Port,
+				TargetPort: intstr.FromInt(networking.BackendHTTP2Port),
 			}, {
 				Name:       pkgnet.ServicePortNameHTTPS,
 				Protocol:   corev1.ProtocolTCP,
@@ -475,11 +472,10 @@ func TestMakePrivateService(t *testing.T) {
 		}, privateSvcMod, func(s *corev1.Service) {
 			// And now patch port to be http2.
 			s.Spec.Ports[0] = corev1.ServicePort{
-				Name:        pkgnet.ServicePortNameH2C,
-				Protocol:    corev1.ProtocolTCP,
-				AppProtocol: &pkgnet.AppProtocolH2C,
-				Port:        pkgnet.ServiceHTTPPort,
-				TargetPort:  intstr.FromInt(networking.BackendHTTP2Port),
+				Name:       pkgnet.ServicePortNameH2C,
+				Protocol:   corev1.ProtocolTCP,
+				Port:       pkgnet.ServiceHTTPPort,
+				TargetPort: intstr.FromInt(networking.BackendHTTP2Port),
 			}
 			s.Spec.Ports[5] = corev1.ServicePort{
 				Name:       pkgnet.ServicePortNameH2C + "-istio",
