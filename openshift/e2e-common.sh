@@ -119,7 +119,7 @@ function install_serverless(){
   export KNATIVE_SERVING_MANIFESTS_DIR="$(pwd)/openshift/release/artifacts"
 
   # TODO UNDO ME:
-  if ! git clone -b serving-tls --depth 1 https://github.com/retocode/serverless-operator.git ${SERVERLESS_DIR}; then
+  if ! git clone -b serving-tls-so --depth 1 https://github.com/retocode/serverless-operator.git ${SERVERLESS_DIR}; then
      # As serving branch cuts before SO branch so it fails to clone the branch in the meantime.
      echo "Failed to clone $(serverless_operator_version) SO branch. Use main branch."
      git clone --depth 1 https://github.com/openshift-knative/serverless-operator.git ${SERVERLESS_DIR}
@@ -256,11 +256,24 @@ function run_e2e_tests(){
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
- enable_feature_flags tag-header-based-routing || fail_test
- go_test_e2e -timeout=2m ./test/e2e/tagheader \
+  enable_feature_flags tag-header-based-routing || fail_test
+  go_test_e2e -timeout=2m ./test/e2e/tagheader \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     ${OPENSHIFT_TEST_OPTIONS} || failed=1
   disable_feature_flags tag-header-based-routing || fail_test
+
+  if [[ ${ENABLE_TLS:-} == "true" ]]; then
+    go_test_e2e -timeout=2m ./test/e2e/clusterlocaldomaintls \
+      --imagetemplate "$TEST_IMAGE_TEMPLATE" \
+      ${OPENSHIFT_TEST_OPTIONS} || failed=1
+
+    go_test_e2e -timeout=3m ./test/e2e/systeminternaltls \
+      --imagetemplate "$TEST_IMAGE_TEMPLATE" \
+      ${OPENSHIFT_TEST_OPTIONS} || failed=1
+
+#      toggle_feature "logging.enable-request-log" false config-observability || fail_test
+#      toggle_feature "logging.request-log-template" '' config-observability || fail_test
+  fi
 
   configure_cm autoscaler allow-zero-initial-scale:true || fail_test
   # wait 10 sec until sync.
