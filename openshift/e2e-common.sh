@@ -229,7 +229,7 @@ function run_e2e_tests(){
   sleep 30
   subdomain=$(oc get ingresses.config.openshift.io cluster  -o jsonpath="{.spec.domain}")
 
-  readonly OPENSHIFT_TEST_OPTIONS="--kubeconfig $KUBECONFIG --enable-beta --enable-alpha --resolvabledomain --customdomain=$subdomain --https --skip-cleanup-on-fail"
+  readonly OPENSHIFT_TEST_OPTIONS="--kubeconfig $KUBECONFIG --enable-beta --enable-alpha --resolvabledomain --customdomain=$subdomain --ingress-class=${INGRESS_CLASS} --https --skip-cleanup-on-fail"
 
   # Enable secure pod defaults for all tests.
   enable_feature_flags secure-pod-defaults || fail_test
@@ -267,12 +267,16 @@ function run_e2e_tests(){
       --imagetemplate "$TEST_IMAGE_TEMPLATE" \
       ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
+    # get existing request-log-template
+    existingTemplate=$(oc get cm -n "${SYSTEM_NAMESPACE}" config-observability -o jsonpath='{.data.logging\.request-log-template}' | sed 's/\"/\\"/g')
+    patch_request_log_template "TLS: {{.Request.TLS}}" || fail_test
+
     go_test_e2e -timeout=3m ./test/e2e/systeminternaltls \
       --imagetemplate "$TEST_IMAGE_TEMPLATE" \
       ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
-#      toggle_feature "logging.enable-request-log" false config-observability || fail_test
-#      toggle_feature "logging.request-log-template" '' config-observability || fail_test
+    # restore request-log-template
+    patch_request_log_template "$existingTemplate" || fail_test
   fi
 
   configure_cm autoscaler allow-zero-initial-scale:true || fail_test
@@ -389,6 +393,15 @@ function run_e2e_tests(){
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
+  return $failed
+}
+
+function patch_request_log_template {
+  # do not use configure_cm as it would split on the :
+  local failed=0
+  oc -n ${SERVING_NAMESPACE} patch knativeserving/knative-serving --type=merge \
+    --patch="{\"spec\": {\"config\": { \"observability\": {\"logging.request-log-template\": \"$1\" }}}}" || failed=1
+  timeout 30 "[[ ! \$(oc get cm -n ${SERVING_NAMESPACE} config-observability -o jsonpath='{.data.logging\.request-log-template}') == \"$1\" ]]" || failed=1
   return $failed
 }
 
