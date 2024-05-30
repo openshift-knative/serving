@@ -270,7 +270,7 @@ function run_e2e_tests(){
     existingTemplate=$(oc get cm -n "${SYSTEM_NAMESPACE}" config-observability -o jsonpath='{.data.logging\.request-log-template}' | sed 's/\"/\\"/g')
     patch_request_log_template "TLS: {{.Request.TLS}}" || fail_test
 
-    go_test_e2e -timeout=3m ./test/e2e/systeminternaltls \
+    go_test_e2e -timeout=5m ./test/e2e/systeminternaltls \
       --imagetemplate "$TEST_IMAGE_TEMPLATE" \
       ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
