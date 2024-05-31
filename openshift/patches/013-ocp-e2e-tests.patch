@@ -1,0 +1,15 @@
+diff --git a/test/e2e/clusterlocaldomaintls/cluster_local_domain_tls_test.go b/test/e2e/clusterlocaldomaintls/cluster_local_domain_tls_test.go
+--- a/test/e2e/clusterlocaldomaintls/cluster_local_domain_tls_test.go	(revision a35c0c4839e309e10f23c6d6c0fd72b44c491c7f)
++++ b/test/e2e/clusterlocaldomaintls/cluster_local_domain_tls_test.go	(revision eebdb4a9e34f66dbaece8f636578989d5748ae0f)
+@@ -129,8 +129,9 @@
+ 		t.Fatalf("Internal URL scheme of service %v was not https", names.Service)
+ 	}
+ 
+-	if externalURL.Scheme != "http" {
+-		t.Fatalf("External URL scheme of service %v was not http", names.Service)
++	// On OpenShift this is always https
++	if externalURL.Scheme != "https" {
++		t.Fatalf("External URL scheme of service %v was not https", names.Service)
+ 	}
+ 
+ 	// Check normal access on external domain
