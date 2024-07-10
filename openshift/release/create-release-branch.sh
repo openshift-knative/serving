@@ -20,7 +20,7 @@ git fetch openshift main
 git checkout openshift/main -- .github/workflows openshift OWNERS_ALIASES OWNERS Makefile
 
 make generate-dockerfiles
-make RELEASE=$release generate-release
+make RELEASE="$release" generate-release
 git add .github/workflows openshift OWNERS_ALIASES OWNERS Makefile
 git commit -m "Add openshift specific files."
 
@@ -30,9 +30,9 @@ PATCH_DIR="openshift/patches"
 if [ -d "openshift/patches-${release}" ]; then
     PATCH_DIR="openshift/patches-${release}"
     # Update the nightly test images to actual versioned images
-    sed -i "s/knative-nightly:knative/knative-${release}:knative/g" ${PATCH_DIR}/*.patch
+    sed -i "s/knative-nightly:knative/knative-${release}:knative/g" "${PATCH_DIR}"/*.patch
 fi
-git apply $PATCH_DIR/*
-make RELEASE=$release generate-release
+git apply "$PATCH_DIR"/*
+make RELEASE="$release" generate-release
 git add .
 git commit -am ":fire: Apply carried patches."
