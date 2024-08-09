@@ -39,7 +39,7 @@ perf-tests:
 .PHONY: perf-tests
 
 test-e2e-tls:
-	ENABLE_INTERNAL_TLS="true" ./openshift/e2e-tests.sh
+	ENABLE_TLS="true" ./openshift/e2e-tests.sh
 .PHONY: test-e2e-tls
 
 # Target used by github actions.
