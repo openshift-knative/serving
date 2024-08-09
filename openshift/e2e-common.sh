@@ -130,11 +130,9 @@ function install_serverless(){
   export GOPATH=/tmp/go
   export ON_CLUSTER_BUILDS=true
   export DOCKER_REPO_OVERRIDE=image-registry.openshift-image-registry.svc:5000/openshift-marketplace
-  #TODO: enable back when we have the feature ready again downstream
-  sed -i 's/internal-encryption: "true"/internal-encryption: "false"/g' ./test/v1beta1/resources/operator.knative.dev_v1beta1_knativeserving_cr.yaml
   OPENSHIFT_CI="true" make generated-files images install-serving || return $?
 
-  # Create a secret for https test.
+ # Ensure tests trust the OpenShift router CA
   trust_router_ca || return $?
   popd
 }
@@ -150,30 +148,36 @@ function install_knative(){
   wait_until_service_has_external_ip $SERVING_INGRESS_NAMESPACE kourier || fail_test "Ingress has no external IP"
   wait_until_hostname_resolves "$(kubectl get svc -n $SERVING_INGRESS_NAMESPACE kourier -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
 
-  # TODO: Only one cluster enables internal-tls but it should be enabled by default when the feature is stable.
-  if [[ ${ENABLE_INTERNAL_TLS:-} == "true" ]]; then
-    configure_cm network internal-encryption:true || fail_test
-    # As config-kourier is in ingress namespace, don't use configure_cm.
-    oc patch knativeserving knative-serving \
-        -n "${SERVING_NAMESPACE}" \
-        --type merge --patch '{"spec": {"config": {"kourier": {"cluster-cert-secret": "server-certs"}}}}'
-    # Deploy certificates for testing TLS with cluster-local gateway
-    timeout 600 '[[ $(oc get ns $SERVING_INGRESS_NAMESPACE -oname | wc -l) == 0 ]]' || return 1
-    yq read --doc 1 ./test/config/tls/cert-secret.yaml | yq write - metadata.namespace ${SERVING_INGRESS_NAMESPACE} | oc apply -f -
+  if [[ ${ENABLE_TLS:-} == "true" ]]; then
+    configure_cm network system-internal-tls:enabled || fail_test
+    configure_cm network cluster-local-domain-tls:enabled || fail_test
+
+    echo "Restart controller to enable cert-manager integration"
+    oc delete pod -n ${SERVING_NAMESPACE} -l app=controller
+    oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} controller
+
     echo "Restart activator to mount the certificates"
     oc delete pod -n ${SERVING_NAMESPACE} -l app=activator
     oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} activator
-    echo "internal-encryption is enabled"
+
+    echo "cluster-local-domain-tls and system-internal-tls are ENABLED"
   else
     # disable internal-encryption. S-O repo would enable by default.
-    configure_cm network internal-encryption:false || fail_test
+    configure_cm network system-internal-tls:disabled || fail_test
+    configure_cm network cluster-local-domain-tls:disabled || fail_test
+
     echo "Restart activator to unmount the certificates"
     oc delete pod -n ${SERVING_NAMESPACE} -l app=activator
     oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} activator
-    echo "internal-encryption is disabled"
+
+    echo "Restart controller to disable cert-manager integration"
+    oc delete pod -n ${SERVING_NAMESPACE} -l app=controller
+    oc wait --timeout=60s --for=condition=Available deployment  -n ${SERVING_NAMESPACE} controller
+
+    echo "cluster-local-domain-tls and system-internal-tls are DISABLED"
   fi
 
-  header "Knative Installed successfully"
+  header "Successfully installed Knative"
 }
 
 function prepare_knative_serving_tests_nightly {
@@ -195,15 +199,6 @@ function prepare_knative_serving_tests_nightly {
   export GATEWAY_OVERRIDE=kourier
   export GATEWAY_NAMESPACE_OVERRIDE="$SERVING_INGRESS_NAMESPACE"
   export INGRESS_CLASS=kourier.ingress.networking.knative.dev
-
-  if [[ ${ENABLE_INTERNAL_TLS} == "true" ]]; then
-    # Deploy CA cert for testing TLS with cluster-local gateway
-    yq read --doc 0 ./test/config/tls/cert-secret.yaml | oc apply -f -
-    # This needs to match the name of Secret in test/config/tls/cert-secret.yaml
-    export CA_CERT=ca-cert
-    # This needs to match $san from test/config/tls/generate.sh
-    export SERVER_NAME=knative.dev
-  fi
 }
 
 function run_e2e_tests(){
@@ -232,7 +227,7 @@ function run_e2e_tests(){
   sleep 30
   subdomain=$(oc get ingresses.config.openshift.io cluster  -o jsonpath="{.spec.domain}")
 
-  readonly OPENSHIFT_TEST_OPTIONS="--kubeconfig $KUBECONFIG --enable-beta --enable-alpha --resolvabledomain --customdomain=$subdomain --https --skip-cleanup-on-fail"
+  readonly OPENSHIFT_TEST_OPTIONS="--kubeconfig $KUBECONFIG --enable-beta --enable-alpha --resolvabledomain --customdomain=$subdomain --ingress-class=${INGRESS_CLASS} --https --skip-cleanup-on-fail"
 
   # Enable secure pod defaults for all tests.
   enable_feature_flags secure-pod-defaults || fail_test
@@ -254,7 +249,7 @@ function run_e2e_tests(){
     parallel=2
   fi
 
-  go_test_e2e -tags=e2e -timeout=30m -parallel=$parallel \
+  go_test_e2e -tags=e2e -timeout=40m -parallel=$parallel \
     ./test/e2e ./test/conformance/api/... ./test/conformance/runtime/... \
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     ${OPENSHIFT_TEST_OPTIONS} || failed=1
@@ -264,6 +259,23 @@ function run_e2e_tests(){
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     ${OPENSHIFT_TEST_OPTIONS} || failed=1
   disable_feature_flags tag-header-based-routing || fail_test
+
+  if [[ ${ENABLE_TLS:-} == "true" ]]; then
+    go_test_e2e -timeout=5m ./test/e2e/clusterlocaldomaintls \
+      --imagetemplate "$TEST_IMAGE_TEMPLATE" \
+      ${OPENSHIFT_TEST_OPTIONS} || failed=1
+
+    # get existing request-log-template
+    existingTemplate=$(oc get cm -n "${SYSTEM_NAMESPACE}" config-observability -o jsonpath='{.data.logging\.request-log-template}' | sed 's/\"/\\"/g')
+    patch_request_log_template "TLS: {{.Request.TLS}}" || fail_test
+
+    go_test_e2e -timeout=5m ./test/e2e/systeminternaltls \
+      --imagetemplate "$TEST_IMAGE_TEMPLATE" \
+      ${OPENSHIFT_TEST_OPTIONS} || failed=1
+
+    # restore request-log-template
+    patch_request_log_template "$existingTemplate" || fail_test
+  fi
 
   configure_cm autoscaler allow-zero-initial-scale:true || fail_test
   # wait 10 sec until sync.
@@ -382,6 +394,15 @@ function run_e2e_tests(){
     --imagetemplate "$TEST_IMAGE_TEMPLATE" \
     ${OPENSHIFT_TEST_OPTIONS} || failed=1
 
+  return $failed
+}
+
+function patch_request_log_template {
+  # do not use configure_cm as it would split on the :
+  local failed=0
+  oc -n ${SERVING_NAMESPACE} patch knativeserving/knative-serving --type=merge \
+    --patch="{\"spec\": {\"config\": { \"observability\": {\"logging.request-log-template\": \"$1\" }}}}" || failed=1
+  timeout 30 "[[ ! \$(oc get cm -n ${SERVING_NAMESPACE} config-observability -o jsonpath='{.data.logging\.request-log-template}') == \"$1\" ]]" || failed=1
   return $failed
 }
 
