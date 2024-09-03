@@ -2,7 +2,7 @@
 
 CGO_ENABLED=0
 GOOS=linux
-CORE_IMAGES=./cmd/activator ./cmd/autoscaler ./cmd/autoscaler-hpa ./cmd/controller ./cmd/queue ./cmd/webhook ./vendor/knative.dev/pkg/apiextensions/storageversion/cmd/migrate
+CORE_IMAGES=./cmd/activator ./cmd/autoscaler ./cmd/autoscaler-hpa ./cmd/controller ./cmd/queue ./cmd/webhook ./cmd/default-domain ./pkg/cleanup/cmd/cleanup ./vendor/knative.dev/pkg/apiextensions/storageversion/cmd/migrate
 TEST_IMAGES=$(shell find ./test/test_images ./test/test_images/multicontainer -mindepth 1 -maxdepth 1 -type d)
 # Exclude wrapper images like multicontainer and initcontainers as those are just ko convenience wrappers used upstream. The openshift serverless tests use other images to run.
 TEST_IMAGES_WITHOUT_WRAPPERS=$(shell find ./test/test_images ./test/test_images/multicontainer -mindepth 1 -maxdepth 1 -type d -not -name multicontainer -not -name initcontainers)
@@ -16,7 +16,7 @@ OPENSHIFT=${CURDIR}/../../github.com/openshift/release
 
 install:
 	for img in $(CORE_IMAGES); do \
-		go install -tags="disable_gcp,disable_aws,disable_azure" $$img ; \
+		go install $$img ; \
 	done
 .PHONY: install
 
