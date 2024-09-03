@@ -28,7 +28,6 @@ git apply openshift/patches/*
 git add .
 git commit -am ":fire: Apply carried patches."
 
-make generate-dockerfiles
 make RELEASE=ci generate-release
 git add openshift OWNERS_ALIASES OWNERS Makefile
 git commit -m ":open_file_folder: Update openshift specific files."

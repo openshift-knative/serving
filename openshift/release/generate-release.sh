@@ -6,6 +6,8 @@ source $(dirname $0)/resolve.sh
 # "VERSION" is used for the "app.kubernetes.io/version" label.
 VERSION=$1
 
+./openshift/generate.sh
+
 readonly YAML_OUTPUT_DIR="openshift/release/artifacts/"
 
 # Clean up
