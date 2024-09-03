@@ -1,11 +1,34 @@
-# Do not edit! This file was generated via Makefile
-FROM registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.22-openshift-4.17 as builder
+# DO NOT EDIT! Generated Dockerfile for cmd/webhook.
+ARG GO_BUILDER=registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.22-openshift-4.17
+ARG GO_RUNTIME=registry.access.redhat.com/ubi8/ubi-minimal
+
+FROM $GO_BUILDER as builder
 
 COPY . .
-RUN make install test-install
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal
+ENV CGO_ENABLED=1
+ENV GOEXPERIMENT=strictfipsruntime
+
+RUN go build -tags strictfipsruntime -o /usr/bin/main ./cmd/webhook
+
+FROM $GO_RUNTIME
+
+ARG VERSION=knative-v1.15
+
+# Install zoneinfo.
+RUN microdnf install tzdata
+
 USER 65532
 
-COPY --from=builder /go/bin/webhook /ko-app/webhook
-ENTRYPOINT ["/ko-app/webhook"]
+COPY --from=builder /usr/bin/main /usr/bin/main
+
+LABEL \
+      com.redhat.component="openshift-serverless-1-serving-webhook-rhel8-container" \
+      name="openshift-serverless-1/serving-webhook-rhel8" \
+      version=$VERSION \
+      summary="Red Hat OpenShift Serverless 1 Serving Webhook" \
+      maintainer="serverless-support@redhat.com" \
+      description="Red Hat OpenShift Serverless 1 Serving Webhook" \
+      io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Webhook"
+
+ENTRYPOINT ["/usr/bin/main"]
