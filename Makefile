@@ -68,5 +68,5 @@ test-e2e-local:
 
 # Generate an aggregated knative yaml file with replaced image references
 generate-release:
-	./openshift/release/generate-release.sh $(RELEASE)
+	./openshift/release/generate-release.sh
 .PHONY: generate-release
