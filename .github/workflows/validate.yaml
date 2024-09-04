@@ -26,9 +26,17 @@ jobs:
         with:
           go-version-file: ./src/github.com/${{ github.repository }}/go.mod
 
+      - name: Setup yq
+        env:
+          YQ_VERSION: 3.4.0
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64 -O /usr/bin/yq
+          sudo chmod +x /usr/bin/yq
+          sudo mv /usr/bin/yq /usr/local/bin/yq
+
       - name: Regenerate all generated files
         working-directory: ./src/github.com/${{ github.repository }}
-        run: ./openshift/release/generate-release.sh ${{ github.base_ref }}
+        run: ./openshift/release/generate-release.sh
 
       - name: Check if everything is consistent
         working-directory: ./src/github.com/${{ github.repository }}
@@ -38,7 +46,7 @@ jobs:
             git -c color.status=always status
             echo '::debug::Running `git diff`'
             git -c color.ui=always diff
-            echo '::error::Not all generated files are commited. Run `openshift/release/generate-release.sh "BRANCH_NAME"` and commit files.'
+            echo '::error::Not all generated files are commited. Run `openshift/release/generate-release.sh and commit files.'
             exit 33
           fi
 
