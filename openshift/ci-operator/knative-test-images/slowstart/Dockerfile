@@ -15,12 +15,11 @@ FROM $GO_RUNTIME
 
 ARG VERSION=knative-v1.15
 
-# Install zoneinfo.
-RUN microdnf install tzdata
+RUN microdnf install tzdata 
 
 USER 65532
 
-COPY --from=builder /usr/bin/main /usr/bin/main
+COPY --from=builder /usr/bin/main /ko-app/slowstart
 
 LABEL \
       com.redhat.component="openshift-serverless-1-serving-test-test-images-slowstart-rhel8-container" \
@@ -31,4 +30,4 @@ LABEL \
       description="Red Hat OpenShift Serverless 1 Serving Test Test Images Slowstart" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Slowstart"
 
-ENTRYPOINT ["/usr/bin/main"]
+ENTRYPOINT ["/ko-app/slowstart"]
