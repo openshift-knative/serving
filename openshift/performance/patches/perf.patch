@@ -1,5 +1,5 @@
 diff --git a/Makefile b/Makefile
-index ccd342372..7963cf412 100644
+index ccd342372..9b7e0295b 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -6,6 +6,7 @@ CORE_IMAGES=./cmd/activator ./cmd/autoscaler ./cmd/autoscaler-hpa ./cmd/controll
@@ -13,7 +13,7 @@ index ccd342372..7963cf412 100644
 @@ -26,6 +27,12 @@ test-install:
  	done
  .PHONY: test-install
-
+ 
 +perf-install:
 +	for img in $(PERF_IMAGES); do \
 +		go install $$img ; \
@@ -23,44 +23,6 @@ index ccd342372..7963cf412 100644
  test-e2e:
  	./openshift/e2e-tests.sh
  .PHONY: test-e2e
-@@ -68,8 +75,9 @@ test-e2e-local:
-
- # Generate Dockerfiles for core and test images used by ci-operator. The files need to be committed manually.
- generate-dockerfiles:
--	./openshift/ci-operator/generate-dockerfiles.sh openshift/ci-operator/knative-images $(CORE_IMAGES)
--	./openshift/ci-operator/generate-dockerfiles.sh openshift/ci-operator/knative-test-images $(TEST_IMAGES_WITHOUT_WRAPPERS)
-+	./openshift/ci-operator/generate-dockerfiles.sh openshift/ci-operator/knative-images $(CORE_IMAGES); \
-+	./openshift/ci-operator/generate-dockerfiles.sh openshift/ci-operator/knative-test-images $(TEST_IMAGES_WITHOUT_WRAPPERS); \
-+    ./openshift/ci-operator/generate-dockerfiles.sh openshift/ci-operator/knative-perf-images $(PERF_IMAGES)
- .PHONY: generate-dockerfiles
-
- # Generate an aggregated knative yaml file with replaced image references
-diff --git a/openshift/ci-operator/Dockerfile.in b/openshift/ci-operator/Dockerfile.in
-index 1c31865cc..7bd47161b 100644
---- a/openshift/ci-operator/Dockerfile.in
-+++ b/openshift/ci-operator/Dockerfile.in
-@@ -2,7 +2,7 @@
- FROM registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.22-openshift-4.17 as builder
-
- COPY . .
--RUN make install test-install
-+RUN make install test-install perf-install
-
- FROM registry.access.redhat.com/ubi8/ubi-minimal
- USER 65532
-diff --git a/openshift/ci-operator/Dockerfile_with_kodata.in b/openshift/ci-operator/Dockerfile_with_kodata.in
-index 9d84e5ecc..572d91c25 100644
---- a/openshift/ci-operator/Dockerfile_with_kodata.in
-+++ b/openshift/ci-operator/Dockerfile_with_kodata.in
-@@ -2,7 +2,7 @@
- FROM registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.22-openshift-4.17 as builder
-
- COPY . .
--RUN make install test-install
-+RUN make install test-install perf-install
-
- FROM registry.access.redhat.com/ubi8/ubi-minimal
- USER 65532
 diff --git a/test/performance/README.md b/test/performance/README.md
 index a4906039a..f17f7cffc 100644
 --- a/test/performance/README.md
@@ -68,7 +30,7 @@ index a4906039a..f17f7cffc 100644
 @@ -76,6 +76,52 @@ export INFLUX_TOKEN=$(kubectl get secret local-influx-influxdb2-auth -o "jsonpat
  ./visualization/setup-influx-db.sh
  ```
-
+ 
 +### Elastic Search / Opensearch
 +
 +```bash
@@ -116,7 +78,7 @@ index a4906039a..f17f7cffc 100644
 +```
 +
  ### Local grafana dashboards
-
+ 
  Use an existing grafana instance or create one on your cluster, [see docs](https://grafana.com/docs/grafana/latest/setup-grafana/installation/kubernetes/).
 diff --git a/test/performance/benchmarks/dataplane-probe/dataplane-probe-activator.yaml b/test/performance/benchmarks/dataplane-probe/dataplane-probe-activator.yaml
 index af0d32631..9c2b2da4d 100644
@@ -270,7 +232,7 @@ index 58693daa3..ff0a8b37b 100644
 @@ -118,11 +118,11 @@ func main() {
  	targeter := vegeta.NewStaticTargeter(t.target)
  	attacker := vegeta.NewAttacker(vegeta.Timeout(30 * time.Second))
-
+ 
 -	influxReporter, err := performance.NewInfluxReporter(map[string]string{"target": *target})
 +	reporter, err := performance.NewDataPointReporterFactory(map[string]string{"target": *target}, benchmarkName)
  	if err != nil {
@@ -279,33 +241,33 @@ index 58693daa3..ff0a8b37b 100644
  	}
 -	defer influxReporter.FlushAndShutdown()
 +	defer reporter.FlushAndShutdown()
-
+ 
  	// Start the attack!
  	results := attacker.Attack(targeter, rate, *duration, "load-test")
 @@ -140,7 +140,7 @@ LOOP:
-
+ 
  		case ds := <-deploymentStatus:
  			// Report number of ready activators.
 -			influxReporter.AddDataPoint(benchmarkName, map[string]interface{}{"activator-pod-count": ds.ReadyReplicas})
 +			reporter.AddDataPoint(benchmarkName, map[string]interface{}{"activator-pod-count": float64(ds.ReadyReplicas)})
-
+ 
  		case res, ok := <-results:
  			if ok {
 @@ -156,12 +156,12 @@ LOOP:
  	metricResults.Close()
-
+ 
  	// Report the results
 -	influxReporter.AddDataPointsForMetrics(metricResults, benchmarkName)
 +	reporter.AddDataPointsForMetrics(metricResults, benchmarkName)
  	_ = vegeta.NewTextReporter(metricResults).Report(os.Stdout)
-
+ 
  	if err := checkSLA(metricResults, t.slaMin, t.slaMax, rate, *duration); err != nil {
  		// make sure to still write the stats
 -		influxReporter.FlushAndShutdown()
 +		reporter.FlushAndShutdown()
  		log.Fatalf(err.Error())
  	}
-
+ 
 diff --git a/test/performance/benchmarks/load-test/load-test-0-direct.yaml b/test/performance/benchmarks/load-test/load-test-0-direct.yaml
 index 30c1a9973..c0190a69f 100644
 --- a/test/performance/benchmarks/load-test/load-test-0-direct.yaml
@@ -448,7 +410,7 @@ index 4e55b942d..336bb88da 100644
 @@ -62,11 +62,11 @@ func main() {
  	ctx, cancel := context.WithTimeout(ctx, 8*time.Minute)
  	defer cancel()
-
+ 
 -	influxReporter, err := performance.NewInfluxReporter(map[string]string{"flavor": *flavor})
 +	reporter, err := performance.NewDataPointReporterFactory(map[string]string{"flavor": *flavor}, benchmarkName)
  	if err != nil {
@@ -457,7 +419,7 @@ index 4e55b942d..336bb88da 100644
  	}
 -	defer influxReporter.FlushAndShutdown()
 +	defer reporter.FlushAndShutdown()
-
+ 
  	log.Print("Starting the load test.")
  	// Ramp up load from 1k to 3k in 2 minute steps.
 @@ -98,22 +98,22 @@ func main() {
@@ -466,36 +428,36 @@ index 4e55b942d..336bb88da 100644
  	resultsChan := vegeta.NewAttacker().Attack(targeter, pacer, 3*duration, "load-test")
 -	metricResults := processResults(ctx, resultsChan, influxReporter, selector)
 +	metricResults := processResults(ctx, resultsChan, &reporter, selector)
-
+ 
  	// Report the results
 -	influxReporter.AddDataPointsForMetrics(metricResults, benchmarkName)
 +	reporter.AddDataPointsForMetrics(metricResults, benchmarkName)
  	_ = vegeta.NewTextReporter(metricResults).Report(os.Stdout)
-
+ 
  	if err := checkSLA(metricResults, pacers, durations); err != nil {
  		// make sure to still write the stats
 -		influxReporter.FlushAndShutdown()
 +		reporter.FlushAndShutdown()
  		log.Fatalf(err.Error())
  	}
-
+ 
  	log.Println("Load test finished")
  }
-
+ 
 -func processResults(ctx context.Context, results <-chan *vegeta.Result, reporter *performance.InfluxReporter, selector labels.Selector) *vegeta.Metrics {
 +func processResults(ctx context.Context, results <-chan *vegeta.Result, reporter *performance.DataPointReporter, selector labels.Selector) *vegeta.Metrics {
  	ctx, cancel := context.WithCancel(ctx)
  	deploymentStatus := performance.FetchDeploymentsStatus(ctx, namespace, selector, time.Second)
  	sksMode := performance.FetchSKSStatus(ctx, namespace, selector, time.Second)
 @@ -141,8 +141,8 @@ func processResults(ctx context.Context, results <-chan *vegeta.Result, reporter
-
+ 
  		case ds := <-deploymentStatus:
  			// Add a sample point for the deployment status
 -			reporter.AddDataPoint(benchmarkName,
 -				map[string]interface{}{"ready-replicas": ds.ReadyReplicas, "desired-replicas": ds.DesiredReplicas})
 +			(*reporter).AddDataPoint(benchmarkName,
 +				map[string]interface{}{"ready-replicas": float64(ds.ReadyReplicas), "desired-replicas": float64(ds.DesiredReplicas)})
-
+ 
  		case sksm := <-sksMode:
  			// Add a sample point for the serverless service mode
 @@ -150,8 +150,8 @@ func processResults(ctx context.Context, results <-chan *vegeta.Result, reporter
@@ -516,7 +478,7 @@ index bad45b394..718831c64 100644
 @@ -115,11 +115,11 @@ func main() {
  		log.Fatal("Failed to setup clients: ", err)
  	}
-
+ 
 -	influxReporter, err := performance.NewInfluxReporter(map[string]string{"number-of-services": strconv.Itoa(*numberOfServices)})
 +	reporter, err := performance.NewDataPointReporterFactory(map[string]string{"number-of-services": strconv.Itoa(*numberOfServices)}, benchmarkName)
  	if err != nil {
@@ -525,24 +487,24 @@ index bad45b394..718831c64 100644
  	}
 -	defer influxReporter.FlushAndShutdown()
 +	defer reporter.FlushAndShutdown()
-
+ 
  	log.Printf("Creating %d Knative Services", *numberOfServices)
  	services, cleanup, err := createServices(clients, *numberOfServices)
 @@ -179,12 +179,12 @@ LOOP:
  	metricResults.Close()
-
+ 
  	// Report the results
 -	influxReporter.AddDataPointsForMetrics(metricResults, benchmarkName)
 +	reporter.AddDataPointsForMetrics(metricResults, benchmarkName)
  	_ = vegeta.NewTextReporter(metricResults).Report(os.Stdout)
-
+ 
  	if err := checkSLA(metricResults, rate); err != nil {
  		cleanup()
 -		influxReporter.FlushAndShutdown()
 +		reporter.FlushAndShutdown()
  		log.Fatal(err.Error())
  	}
-
+ 
 diff --git a/test/performance/benchmarks/real-traffic-test/real-traffic-test.yaml b/test/performance/benchmarks/real-traffic-test/real-traffic-test.yaml
 index 5154b38a3..f4f47ec5a 100644
 --- a/test/performance/benchmarks/real-traffic-test/real-traffic-test.yaml
@@ -608,7 +570,7 @@ index 1c7f600b4..4c7dcdd91 100644
  	defer serviceWI.Stop()
 -	serviceSeen := sets.Set[string]{}
 +	serviceSeen := make(sets.String)
-
+ 
  	configurationWI, err := sc.ServingV1().Configurations(namespace).Watch(ctx, lo)
  	if err != nil {
  		fatalf("Unable to watch configurations: %v", err)
@@ -616,7 +578,7 @@ index 1c7f600b4..4c7dcdd91 100644
  	defer configurationWI.Stop()
 -	configurationSeen := sets.Set[string]{}
 +	configurationSeen := make(sets.String)
-
+ 
  	routeWI, err := sc.ServingV1().Routes(namespace).Watch(ctx, lo)
  	if err != nil {
  		fatalf("Unable to watch routes: %v", err)
@@ -624,7 +586,7 @@ index 1c7f600b4..4c7dcdd91 100644
  	defer routeWI.Stop()
 -	routeSeen := sets.Set[string]{}
 +	routeSeen := make(sets.String)
-
+ 
  	revisionWI, err := sc.ServingV1().Revisions(namespace).Watch(ctx, lo)
  	if err != nil {
  		fatalf("Unable to watch revisions: %v", err)
@@ -632,7 +594,7 @@ index 1c7f600b4..4c7dcdd91 100644
  	defer revisionWI.Stop()
 -	revisionSeen := sets.Set[string]{}
 +	revisionSeen := make(sets.String)
-
+ 
  	nc := networkingclient.Get(ctx)
  	ingressWI, err := nc.NetworkingV1alpha1().Ingresses(namespace).Watch(ctx, lo)
 @@ -137,29 +137,29 @@ func main() {
@@ -641,7 +603,7 @@ index 1c7f600b4..4c7dcdd91 100644
  	defer ingressWI.Stop()
 -	ingressSeen := sets.Set[string]{}
 +	ingressSeen := make(sets.String)
-
+ 
  	sksWI, err := nc.NetworkingV1alpha1().ServerlessServices(namespace).Watch(ctx, lo)
  	if err != nil {
  		fatalf("Unable to watch skss: %v", err)
@@ -649,7 +611,7 @@ index 1c7f600b4..4c7dcdd91 100644
  	defer sksWI.Stop()
 -	sksSeen := sets.Set[string]{}
 +	sksSeen := make(sets.String)
-
+ 
  	paWI, err := sc.AutoscalingV1alpha1().PodAutoscalers(namespace).Watch(ctx, lo)
  	if err != nil {
  		fatalf("Unable to watch pas: %v", err)
@@ -657,7 +619,7 @@ index 1c7f600b4..4c7dcdd91 100644
  	defer paWI.Stop()
 -	paSeen := sets.Set[string]{}
 +	paSeen := make(sets.String)
-
+ 
  	tick := time.NewTicker(*frequency)
  	metricResults := func() *vegeta.Metrics {
 -		influxReporter, err := performance.NewInfluxReporter(map[string]string{})
@@ -668,7 +630,7 @@ index 1c7f600b4..4c7dcdd91 100644
  		}
 -		defer influxReporter.FlushAndShutdown()
 +		defer reporter.FlushAndShutdown()
-
+ 
  		// We use vegeta.Metrics here as a metrics collector because it already contains logic to calculate percentiles
  		mr := &vegeta.Metrics{}
 @@ -184,7 +184,7 @@ func main() {
@@ -677,7 +639,7 @@ index 1c7f600b4..4c7dcdd91 100644
  				svc := event.Object.(*v1.Service)
 -				handleEvent(influxReporter, mr, svc, svc.Status.Status, serviceSeen, "Service")
 +				handleEvent(&reporter, mr, svc, svc.Status.Status, serviceSeen, "Service")
-
+ 
  			case event := <-configurationWI.ResultChan():
  				if event.Type != watch.Modified {
 @@ -192,7 +192,7 @@ func main() {
@@ -686,7 +648,7 @@ index 1c7f600b4..4c7dcdd91 100644
  				cfg := event.Object.(*v1.Configuration)
 -				handleEvent(influxReporter, mr, cfg, cfg.Status.Status, configurationSeen, "Configuration")
 +				handleEvent(&reporter, mr, cfg, cfg.Status.Status, configurationSeen, "Configuration")
-
+ 
  			case event := <-routeWI.ResultChan():
  				if event.Type != watch.Modified {
 @@ -200,7 +200,7 @@ func main() {
@@ -695,7 +657,7 @@ index 1c7f600b4..4c7dcdd91 100644
  				rt := event.Object.(*v1.Route)
 -				handleEvent(influxReporter, mr, rt, rt.Status.Status, routeSeen, "Route")
 +				handleEvent(&reporter, mr, rt, rt.Status.Status, routeSeen, "Route")
-
+ 
  			case event := <-revisionWI.ResultChan():
  				if event.Type != watch.Modified {
 @@ -208,7 +208,7 @@ func main() {
@@ -704,7 +666,7 @@ index 1c7f600b4..4c7dcdd91 100644
  				rev := event.Object.(*v1.Revision)
 -				handleEvent(influxReporter, mr, rev, rev.Status.Status, revisionSeen, "Revision")
 +				handleEvent(&reporter, mr, rev, rev.Status.Status, revisionSeen, "Revision")
-
+ 
  			case event := <-ingressWI.ResultChan():
  				if event.Type != watch.Modified {
 @@ -216,7 +216,7 @@ func main() {
@@ -713,7 +675,7 @@ index 1c7f600b4..4c7dcdd91 100644
  				ing := event.Object.(*netv1alpha1.Ingress)
 -				handleEvent(influxReporter, mr, ing, ing.Status.Status, ingressSeen, "Ingress")
 +				handleEvent(&reporter, mr, ing, ing.Status.Status, ingressSeen, "Ingress")
-
+ 
  			case event := <-sksWI.ResultChan():
  				if event.Type != watch.Modified {
 @@ -224,7 +224,7 @@ func main() {
@@ -722,7 +684,7 @@ index 1c7f600b4..4c7dcdd91 100644
  				ing := event.Object.(*netv1alpha1.ServerlessService)
 -				handleEvent(influxReporter, mr, ing, ing.Status.Status, sksSeen, "ServerlessService")
 +				handleEvent(&reporter, mr, ing, ing.Status.Status, sksSeen, "ServerlessService")
-
+ 
  			case event := <-paWI.ResultChan():
  				if event.Type != watch.Modified {
 @@ -232,7 +232,7 @@ func main() {
@@ -737,7 +699,7 @@ index 1c7f600b4..4c7dcdd91 100644
 @@ -271,8 +271,8 @@ func getService() *v1.Service {
  	return v1test.Service(rn, sos...)
  }
-
+ 
 -func handleEvent(influxReporter *performance.InfluxReporter, metricResults *vegeta.Metrics, svc kmeta.Accessor,
 -	status duckv1.Status, seen sets.Set[string], metric string) {
 +func handleEvent(reporter *performance.DataPointReporter, metricResults *vegeta.Metrics, svc kmeta.Accessor,
@@ -747,7 +709,7 @@ index 1c7f600b4..4c7dcdd91 100644
  	}
 @@ -288,7 +288,7 @@ func handleEvent(influxReporter *performance.InfluxReporter, metricResults *vege
  	elapsed := ready.Sub(created)
-
+ 
  	if cc.Status == corev1.ConditionTrue {
 -		influxReporter.AddDataPoint(benchmarkName, map[string]interface{}{metric: elapsed.Seconds()})
 +		(*reporter).AddDataPoint(benchmarkName, map[string]interface{}{metric: elapsed.Seconds()})
@@ -812,7 +774,7 @@ index 288125138..8f1144ea0 100644
 @@ -114,11 +114,11 @@ func main() {
  	})
  	log.Print("Running rollout probe test with selector: ", selector)
-
+ 
 -	influxReporter, err := performance.NewInfluxReporter(map[string]string{"target": *target})
 +	reporter, err := performance.NewDataPointReporterFactory(map[string]string{"target": *target}, benchmarkName)
  	if err != nil {
@@ -821,7 +783,7 @@ index 288125138..8f1144ea0 100644
  	}
 -	defer influxReporter.FlushAndShutdown()
 +	defer reporter.FlushAndShutdown()
-
+ 
  	// Setup background metric processes
  	deploymentStatus := performance.FetchDeploymentsStatus(ctx, namespace, selector, time.Second)
 @@ -175,12 +175,12 @@ LOOP:
@@ -843,19 +805,19 @@ index 288125138..8f1144ea0 100644
  				// their reported scale values (should be 0 & 100 depending on which
 @@ -208,12 +208,12 @@ LOOP:
  	metricResults.Close()
-
+ 
  	// Report the results
 -	influxReporter.AddDataPointsForMetrics(metricResults, benchmarkName)
 +	reporter.AddDataPointsForMetrics(metricResults, benchmarkName)
  	_ = vegeta.NewTextReporter(metricResults).Report(os.Stdout)
-
+ 
  	if err := checkSLA(metricResults, rate); err != nil {
  		// make sure to still write the stats
 -		influxReporter.FlushAndShutdown()
 +		reporter.FlushAndShutdown()
  		log.Fatalf(err.Error())
  	}
-
+ 
 diff --git a/test/performance/benchmarks/rollout-probe/rollout-probe-activator-direct-lin.yaml b/test/performance/benchmarks/rollout-probe/rollout-probe-activator-direct-lin.yaml
 index d926ffd90..f4df6d2b9 100644
 --- a/test/performance/benchmarks/rollout-probe/rollout-probe-activator-direct-lin.yaml
@@ -998,7 +960,7 @@ index 2c527c74b..886847e42 100644
 @@ -127,11 +127,11 @@ func main() {
  		log.Fatal("Failed to setup clients: ", err)
  	}
-
+ 
 -	influxReporter, err := performance.NewInfluxReporter(map[string]string{"parallel": strconv.Itoa(*parallelCount)})
 +	reporter, err := performance.NewDataPointReporterFactory(map[string]string{"parallel": strconv.Itoa(*parallelCount)}, benchmarkName)
  	if err != nil {
@@ -1007,23 +969,23 @@ index 2c527c74b..886847e42 100644
  	}
 -	defer influxReporter.FlushAndShutdown()
 +	defer reporter.FlushAndShutdown()
-
+ 
  	// We use vegeta.Metrics here as a metrics collector because it already contains logic to calculate percentiles
  	vegetaReporter := performance.NewVegetaReporter()
 @@ -155,18 +155,18 @@ func main() {
  		fatalf("Failed to wait for all services to scale to zero: %v", err)
  	}
-
+ 
 -	parallelScaleFromZero(ctx, clients, services, influxReporter, vegetaReporter)
 +	parallelScaleFromZero(ctx, clients, services, &reporter, vegetaReporter)
-
+ 
  	metricResults := vegetaReporter.StopAndCollectMetrics()
-
+ 
  	// Report the results
 -	influxReporter.AddDataPointsForMetrics(metricResults, benchmarkName)
 +	reporter.AddDataPointsForMetrics(metricResults, benchmarkName)
  	_ = vegeta.NewTextReporter(metricResults).Report(os.Stdout)
-
+ 
  	sla := slas[*parallelCount]
  	if err := checkSLA(metricResults, sla.p95min, sla.p95max, sla.latencyMax, *parallelCount); err != nil {
  		// make sure to still write the stats
@@ -1031,11 +993,11 @@ index 2c527c74b..886847e42 100644
 +		reporter.FlushAndShutdown()
  		log.Fatalf(err.Error())
  	}
-
+ 
 @@ -250,7 +250,7 @@ func waitForScaleToZero(ctx context.Context, objs []*v1test.ResourceObjects) err
  	return g.Wait()
  }
-
+ 
 -func parallelScaleFromZero(ctx context.Context, clients *test.Clients, objs []*v1test.ResourceObjects, reporter *performance.InfluxReporter, vegetaReporter *performance.VegetaReporter) {
 +func parallelScaleFromZero(ctx context.Context, clients *test.Clients, objs []*v1test.ResourceObjects, reporter *performance.DataPointReporter, vegetaReporter *performance.VegetaReporter) {
  	count := len(objs)
