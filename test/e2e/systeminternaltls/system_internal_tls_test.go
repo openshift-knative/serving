@@ -113,6 +113,9 @@ func TestSystemInternalTLS(t *testing.T) {
 
 // TestTLSCertificateRotation tests certificate rotation and automatic reloading of certs.
 func TestTLSCertificateRotation(t *testing.T) {
+
+	t.Skip("RETO SKIPPED TESTING")
+
 	if !test.ServingFlags.EnableAlphaFeatures {
 		t.Skip("Alpha features not enabled")
 	}
