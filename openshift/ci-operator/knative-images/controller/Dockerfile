@@ -15,11 +15,9 @@ FROM $GO_RUNTIME
 
 ARG VERSION=knative-v1.15
 
-RUN microdnf install tzdata 
+COPY --from=builder /usr/bin/main /ko-app/controller
 
 USER 65532
-
-COPY --from=builder /usr/bin/main /ko-app/controller
 
 LABEL \
       com.redhat.component="openshift-serverless-1-serving-controller-rhel8-container" \
@@ -28,6 +26,8 @@ LABEL \
       summary="Red Hat OpenShift Serverless 1 Serving Controller" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Controller" \
-      io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Controller"
+      io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Controller" \
+      io.k8s.description="Red Hat OpenShift Serverless Serving Controller" \
+      io.openshift.tags="controller"
 
 ENTRYPOINT ["/ko-app/controller"]

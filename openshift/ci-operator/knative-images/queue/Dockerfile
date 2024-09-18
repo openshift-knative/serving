@@ -15,11 +15,9 @@ FROM $GO_RUNTIME
 
 ARG VERSION=knative-v1.15
 
-RUN microdnf install tzdata 
+COPY --from=builder /usr/bin/main /ko-app/queue
 
 USER 65532
-
-COPY --from=builder /usr/bin/main /ko-app/queue
 
 LABEL \
       com.redhat.component="openshift-serverless-1-serving-queue-rhel8-container" \
@@ -28,6 +26,8 @@ LABEL \
       summary="Red Hat OpenShift Serverless 1 Serving Queue" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Queue" \
-      io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Queue"
+      io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Queue" \
+      io.k8s.description="Red Hat OpenShift Serverless Serving Queue" \
+      io.openshift.tags="queue"
 
 ENTRYPOINT ["/ko-app/queue"]

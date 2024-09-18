@@ -15,11 +15,9 @@ FROM $GO_RUNTIME
 
 ARG VERSION=knative-v1.15
 
-RUN microdnf install tzdata 
+COPY --from=builder /usr/bin/main /ko-app/pizzaplanetv1
 
 USER 65532
-
-COPY --from=builder /usr/bin/main /ko-app/pizzaplanetv1
 
 LABEL \
       com.redhat.component="openshift-serverless-1-serving-test-test-images-pizzaplanetv1-rhel8-container" \
@@ -28,6 +26,8 @@ LABEL \
       summary="Red Hat OpenShift Serverless 1 Serving Test Test Images Pizzaplanetv1" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Test Test Images Pizzaplanetv1" \
-      io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Pizzaplanetv1"
+      io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Pizzaplanetv1" \
+      io.k8s.description="Red Hat OpenShift Serverless Serving Test Test Images Pizzaplanetv1" \
+      io.openshift.tags="test-test-images-pizzaplanetv1"
 
 ENTRYPOINT ["/ko-app/pizzaplanetv1"]

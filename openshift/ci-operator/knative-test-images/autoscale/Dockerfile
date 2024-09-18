@@ -15,11 +15,9 @@ FROM $GO_RUNTIME
 
 ARG VERSION=knative-v1.15
 
-RUN microdnf install tzdata 
+COPY --from=builder /usr/bin/main /ko-app/autoscale
 
 USER 65532
-
-COPY --from=builder /usr/bin/main /ko-app/autoscale
 
 LABEL \
       com.redhat.component="openshift-serverless-1-serving-test-test-images-autoscale-rhel8-container" \
@@ -28,6 +26,8 @@ LABEL \
       summary="Red Hat OpenShift Serverless 1 Serving Test Test Images Autoscale" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Test Test Images Autoscale" \
-      io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Autoscale"
+      io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Autoscale" \
+      io.k8s.description="Red Hat OpenShift Serverless Serving Test Test Images Autoscale" \
+      io.openshift.tags="test-test-images-autoscale"
 
 ENTRYPOINT ["/ko-app/autoscale"]
