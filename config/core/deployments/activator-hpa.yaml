@@ -50,7 +50,7 @@ metadata:
     app.kubernetes.io/name: knative-serving
     app.kubernetes.io/version: devel
 spec:
-  minAvailable: 1
+  minAvailable: 80%
   selector:
     matchLabels:
       app: activator
