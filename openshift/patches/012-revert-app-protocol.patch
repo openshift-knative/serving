@@ -43,12 +43,12 @@ index 5967cf2cd..2a19da758 100644
  			}},
  		}
 diff --git a/pkg/reconciler/route/resources/service_test.go b/pkg/reconciler/route/resources/service_test.go
-index 36de58b19..1664fb466 100644
+index 829dfe914..b6c4f6cb7 100644
 --- a/pkg/reconciler/route/resources/service_test.go
 +++ b/pkg/reconciler/route/resources/service_test.go
 @@ -54,10 +54,9 @@ var (
  	}
-
+ 
  	expectedPorts = []corev1.ServicePort{{
 -		Name:        netapi.ServicePortNameH2C,
 -		AppProtocol: &netapi.AppProtocolH2C,
@@ -59,7 +59,7 @@ index 36de58b19..1664fb466 100644
 +		TargetPort: intstr.FromInt(80),
  	}}
  )
-
+ 
 @@ -124,9 +123,8 @@ func TestMakeK8SService(t *testing.T) {
  				IP: "some-ip",
  			}},
@@ -97,28 +97,24 @@ index 36de58b19..1664fb466 100644
 +					TargetPort: intstr.FromInt(80),
  				}},
  			}
-
+ 
 diff --git a/pkg/reconciler/serverlessservice/resources/services.go b/pkg/reconciler/serverlessservice/resources/services.go
-index 5672fc12e..7ad61ad67 100644
+index 3292a9b88..d65f3057b 100644
 --- a/pkg/reconciler/serverlessservice/resources/services.go
 +++ b/pkg/reconciler/serverlessservice/resources/services.go
-@@ -60,11 +60,10 @@ func MakePublicService(sks *v1alpha1.ServerlessService) *corev1.Service {
-
+@@ -60,9 +60,8 @@ func MakePublicService(sks *v1alpha1.ServerlessService) *corev1.Service {
+ 
  func makePublicServicePorts(sks *v1alpha1.ServerlessService) []corev1.ServicePort {
  	ports := []corev1.ServicePort{{
 -		Name:        pkgnet.ServicePortName(sks.Spec.ProtocolType),
 -		Protocol:    corev1.ProtocolTCP,
 -		AppProtocol: pkgnet.AppProtocol(sks.Spec.ProtocolType),
--		Port:        int32(pkgnet.ServicePort(sks.Spec.ProtocolType)),
--		TargetPort:  targetPort(sks),
-+		Name:       pkgnet.ServicePortName(sks.Spec.ProtocolType),
-+		Protocol:   corev1.ProtocolTCP,
-+		Port:       int32(pkgnet.ServicePort(sks.Spec.ProtocolType)),
-+		TargetPort: targetPort(sks),
- 	}, {
- 		// The HTTPS port is used when activator-ca is enabled.
- 		// Although it is not used by default, we put it here as it should be harmless
-@@ -145,10 +144,9 @@ func MakePrivateService(sks *v1alpha1.ServerlessService, selector map[string]str
++		Name:     pkgnet.ServicePortName(sks.Spec.ProtocolType),
++		Protocol: corev1.ProtocolTCP,
+ 		//nolint:gosec //ignore integer overflow since pkgnet is bounded
+ 		Port:       int32(pkgnet.ServicePort(sks.Spec.ProtocolType)),
+ 		TargetPort: targetPort(sks),
+@@ -146,10 +145,9 @@ func MakePrivateService(sks *v1alpha1.ServerlessService, selector map[string]str
  		},
  		Spec: corev1.ServiceSpec{
  			Ports: []corev1.ServicePort{{
@@ -201,7 +197,7 @@ index 0690f52d3..61f7bad02 100644
  			s.Spec.Ports[5] = corev1.ServicePort{
  				Name:       pkgnet.ServicePortNameH2C + "-istio",
 diff --git a/pkg/reconciler/serverlessservice/serverlessservice_test.go b/pkg/reconciler/serverlessservice/serverlessservice_test.go
-index 3a743236f..2682f6806 100644
+index 69ae964d5..4f3c9a702 100644
 --- a/pkg/reconciler/serverlessservice/serverlessservice_test.go
 +++ b/pkg/reconciler/serverlessservice/serverlessservice_test.go
 @@ -803,7 +803,6 @@ func deploy(namespace, name string, opts ...deploymentOption) *appsv1.Deployment
@@ -209,7 +205,7 @@ index 3a743236f..2682f6806 100644
  	svc.Spec.Ports[0].Name = "http2"
  	svc.Spec.Ports[0].TargetPort = intstr.FromInt(networking.BackendHTTP2Port)
 -	svc.Spec.Ports[0].AppProtocol = &pkgnet.AppProtocolH2C
-
+ 
  	svc.Spec.Ports[5].Name = "http2-istio"
  	svc.Spec.Ports[5].Port = networking.BackendHTTP2Port
 @@ -813,7 +812,6 @@ func withHTTP2Priv(svc *corev1.Service) {
@@ -219,7 +215,7 @@ index 3a743236f..2682f6806 100644
 -	svc.Spec.Ports[0].AppProtocol = &pkgnet.AppProtocolH2C
  	svc.Spec.Ports[0].TargetPort = intstr.FromInt(networking.BackendHTTP2Port)
  }
-
+ 
 diff --git a/pkg/testing/functional.go b/pkg/testing/functional.go
 index f0ee41eb7..c04d5c9e3 100644
 --- a/pkg/testing/functional.go
