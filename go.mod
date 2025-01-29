@@ -27,10 +27,10 @@ require (
 	golang.org/x/time v0.5.0
 	google.golang.org/api v0.183.0
 	google.golang.org/grpc v1.65.0
-	k8s.io/api v0.29.2
+	k8s.io/api v0.29.13
 	k8s.io/apiextensions-apiserver v0.29.2
-	k8s.io/apimachinery v0.29.2
-	k8s.io/client-go v0.29.2
+	k8s.io/apimachinery v0.29.13
+	k8s.io/client-go v0.29.13
 	k8s.io/code-generator v0.29.2
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
