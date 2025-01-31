@@ -31,7 +31,7 @@ jobs:
 
       - name: Generate files
         working-directory: ./src/github.com/${{ github.repository }}
-        run: make generate-release
+        run: ./hack/update-deps.sh
 
       - name: git push
         working-directory: ./src/github.com/${{ github.repository }}
