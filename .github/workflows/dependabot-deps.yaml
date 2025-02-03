@@ -3,8 +3,6 @@ name: Dependabot
 
 on:
   pull_request:
-    branches:
-      - "release-v1.*"
 
 permissions:
   contents: write
@@ -31,7 +29,7 @@ jobs:
 
       - name: Generate files
         working-directory: ./src/github.com/${{ github.repository }}
-        run: ./hack/update-deps.sh
+        run: make generate-release
 
       - name: git push
         working-directory: ./src/github.com/${{ github.repository }}
@@ -41,6 +39,6 @@ jobs:
             git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git config --local user.name "github-actions[bot]"
             git add .
-            git commit -m "Run generate release"
+            git commit -m "Run make generate-release"
             git push
           fi
