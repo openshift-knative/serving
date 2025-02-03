@@ -1,0 +1,17 @@
+apiVersion: appstudio.redhat.com/v1alpha1
+kind: Component
+metadata:
+  annotations:
+    build.appstudio.openshift.io/pipeline: '{"name":"docker-build","bundle":"latest"}'
+    build.appstudio.openshift.io/request: configure-pac-no-mr
+  name: kn-serving-test-runtime-117
+spec:
+  componentName: kn-serving-test-runtime-117
+  application: serverless-operator-137
+   
+  source:
+    git:
+      url: https://github.com/openshift-knative/serving.git
+      context: 
+      dockerfileUrl: openshift/ci-operator/knative-test-images/runtime/Dockerfile
+      revision: release-v1.17
