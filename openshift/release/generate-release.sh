@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-root="$(dirname "${BASH_SOURCE[0]}")"
+root="$(dirname "${BASH_SOURCE[0]}")"/../..
 
 source $(dirname $0)/resolve.sh
 
@@ -8,6 +8,13 @@ release=$(yq r openshift/project.yaml project.tag)
 release=${release/knative-/}
 
 echo "Release: $release"
+
+# Reconcile dependencies in case of dependabot updates
+"${root}"/hack/update-deps.sh
+# Re-applu patches that touch vendor/ dir
+git apply "${root}"/openshift/patches/001-object.patch
+git apply "${root}"/openshift/patches/002-mutemetrics.patch
+git apply "${root}"/openshift/patches/003-routeretry.patch
 
 ./openshift/generate.sh
 
