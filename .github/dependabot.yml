@@ -26,12 +26,22 @@ updates:
             patterns:
                 - '*'
             applies-to: version-updates
+            exclude-patterns:
+                - knative.dev/*
+                - k8s.io/*
+                - github.com/openshift/*
+                - sigs.k8s.io/controller-runtime*
         minor:
             update-types:
                 - minor
             patterns:
                 - '*'
             applies-to: version-updates
+            exclude-patterns:
+                - knative.dev/*
+                - k8s.io/*
+                - github.com/openshift/*
+                - sigs.k8s.io/controller-runtime*
         patch:
             update-types:
                 - patch
@@ -76,12 +86,22 @@ updates:
             patterns:
                 - '*'
             applies-to: version-updates
+            exclude-patterns:
+                - knative.dev/*
+                - k8s.io/*
+                - github.com/openshift/*
+                - sigs.k8s.io/controller-runtime*
         minor:
             update-types:
                 - minor
             patterns:
                 - '*'
             applies-to: version-updates
+            exclude-patterns:
+                - knative.dev/*
+                - k8s.io/*
+                - github.com/openshift/*
+                - sigs.k8s.io/controller-runtime*
         patch:
             update-types:
                 - patch
@@ -126,12 +146,22 @@ updates:
             patterns:
                 - '*'
             applies-to: version-updates
+            exclude-patterns:
+                - knative.dev/*
+                - k8s.io/*
+                - github.com/openshift/*
+                - sigs.k8s.io/controller-runtime*
         minor:
             update-types:
                 - minor
             patterns:
                 - '*'
             applies-to: version-updates
+            exclude-patterns:
+                - knative.dev/*
+                - k8s.io/*
+                - github.com/openshift/*
+                - sigs.k8s.io/controller-runtime*
         patch:
             update-types:
                 - patch
