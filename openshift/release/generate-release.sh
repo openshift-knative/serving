@@ -11,7 +11,7 @@ echo "Release: $release"
 
 # Reconcile dependencies in case of dependabot updates
 "${root}"/hack/update-deps.sh
-# Re-applu patches that touch vendor/ dir
+# Re-apply patches that touch vendor/ dir
 git apply "${root}"/openshift/patches/001-object.patch
 git apply "${root}"/openshift/patches/002-mutemetrics.patch
 git apply "${root}"/openshift/patches/003-routeretry.patch
