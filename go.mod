@@ -3,7 +3,7 @@ module knative.dev/serving
 go 1.22
 
 require (
-	github.com/ahmetb/gen-crd-api-reference-docs v0.3.1-0.20210609063737-0067dc6dcea2
+	github.com/ahmetb/gen-crd-api-reference-docs v0.3.1-0.20250210181511-a4e4190827ba
 	github.com/cert-manager/cert-manager v1.13.3
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/ghodss/yaml v1.0.0
@@ -154,8 +154,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/gengo v0.0.0-20240129211411-f967bbeff4b4 // indirect
-	k8s.io/klog v1.0.0 // indirect
-	k8s.io/klog/v2 v2.120.1 // indirect
+	k8s.io/gengo/v2 v2.0.0-20240404160639-a0386bf69313 // indirect
+	k8s.io/klog/v2 v2.130.1 // indirect
 	sigs.k8s.io/gateway-api v0.8.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
