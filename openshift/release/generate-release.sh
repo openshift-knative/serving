@@ -15,6 +15,7 @@ echo "Release: $release"
 git apply "${root}"/openshift/patches/001-object.patch
 git apply "${root}"/openshift/patches/002-mutemetrics.patch
 git apply "${root}"/openshift/patches/003-routeretry.patch
+git apply "${root}"/openshift/patches/015-backport-istio-label.patch
 
 ./openshift/generate.sh
 

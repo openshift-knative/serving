@@ -16,7 +16,7 @@ rm -rf "$tmp_dir"
 $(go env GOPATH)/bin/generate \
   --root-dir "${repo_root_dir}" \
   --generators dockerfile \
-  --dockerfile-test-dir "ci-operator/knative-perf-images" \
+  --dockerfiles-test-dir "ci-operator/knative-perf-images" \
   --app-file-fmt "/ko-app/%s" \
   --includes "test/performance/benchmarks.*" \
   --dockerfile-image-builder-fmt "registry.ci.openshift.org/openshift/release:rhel-8-release-golang-%s-openshift-4.17"
