@@ -46,6 +46,12 @@ func NewAdmissionController(
 	secretInformer := secretinformer.Get(ctx)
 	options := webhook.GetOptions(ctx)
 
+	// if this environment variable is set, it overrides the value in the Options
+	disableNamespaceOwnership := webhook.DisableNamespaceOwnershipFromEnv()
+	if disableNamespaceOwnership != nil {
+		options.DisableNamespaceOwnership = *disableNamespaceOwnership
+	}
+
 	key := types.NamespacedName{Name: name}
 
 	wh := &reconciler{
@@ -60,8 +66,9 @@ func NewAdmissionController(
 		key:  key,
 		path: path,
 
-		constructors: make(map[string]reflect.Value),
-		secretName:   options.SecretName,
+		constructors:              make(map[string]reflect.Value),
+		secretName:                options.SecretName,
+		disableNamespaceOwnership: options.DisableNamespaceOwnership,
 
 		client:       client,
 		vwhlister:    vwhInformer.Lister(),
