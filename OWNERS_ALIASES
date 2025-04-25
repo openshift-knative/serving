@@ -5,7 +5,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
   serving-reviewers:
   - alanfx
@@ -13,7 +12,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
 
   serving-api-approvers:
@@ -22,7 +20,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
   serving-api-reviewers:
   - alanfx
@@ -30,7 +27,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
 
   autoscaling-approvers:
@@ -39,7 +35,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
   autoscaling-reviewers:
   - alanfx
@@ -47,7 +42,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
 
   monitoring-approvers:
@@ -56,7 +50,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
   monitoring-reviewers:
   - alanfx
@@ -64,7 +57,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
 
   productivity-approvers:
@@ -73,7 +65,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
   productivity-reviewers:
   - alanfx
@@ -81,7 +72,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
 
   networking-approvers:
@@ -90,7 +80,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
   networking-reviewers:
   - alanfx
@@ -98,7 +87,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
 
   build-approvers:
@@ -107,7 +95,6 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
   build-reviewers:
   - alanfx
@@ -115,6 +102,5 @@ aliases:
   - mvinkler
   - nak3
   - ReToCode
-  - rhuss
   - skonto
 
