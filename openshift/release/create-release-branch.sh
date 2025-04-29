@@ -21,7 +21,6 @@ git checkout openshift/main -- .github/workflows openshift OWNERS_ALIASES OWNERS
 
 tag=${target/release-/}
 yq write --inplace openshift/project.yaml project.tag "knative-$tag"
-make generate-release
 git add .github/workflows openshift OWNERS_ALIASES OWNERS Makefile
 git commit -m "Add openshift specific files."
 
@@ -34,6 +33,10 @@ if [ -d "openshift/patches-${release}" ]; then
     sed -i "s/knative-nightly:knative/knative-${release}:knative/g" "${PATCH_DIR}"/*.patch
 fi
 git apply "$PATCH_DIR"/*
-make generate-release
 git add .
 git commit -am ":fire: Apply carried patches."
+
+# Generate Dockerfiles
+make generate-release
+git add .
+git commit -am "Add openshift image specific files."
