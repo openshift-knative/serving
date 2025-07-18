@@ -1,17 +1,14 @@
 # The OWNERS file is used by prow to automatically merge approved PRs.
 
+# DO NOT EDIT! File generated via https://github.com/openshift-knative/hack/tree/main/config.
+
 approvers:
-- alanfx
 - dsimansk
-- mgencur
+- Fedosin
 - mvinkler
-- rhuss
-- skonto
+- rudyredhat1
 
 reviewers:
-- alanfx
 - dsimansk
-- mgencur
+- Fedosin
 - mvinkler
-- rhuss
-- skonto
