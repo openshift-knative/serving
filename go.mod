@@ -1,6 +1,6 @@
 module knative.dev/serving
 
-go 1.22.7
+go 1.24.0
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.1-0.20210609063737-0067dc6dcea2
@@ -22,7 +22,7 @@ require (
 	golang.org/x/net v0.34.0
 	golang.org/x/sync v0.10.0
 	golang.org/x/sys v0.29.0
-	golang.org/x/time v0.6.0
+	golang.org/x/time v0.13.0
 	google.golang.org/api v0.198.0
 	google.golang.org/grpc v1.69.2
 	gopkg.in/yaml.v3 v3.0.1
