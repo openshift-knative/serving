@@ -38,7 +38,7 @@ require (
 	knative.dev/hack v0.0.0-20241010131451-05b2fb30cb4d
 	knative.dev/networking v0.0.0-20241022012959-60e29ff520dc
 	knative.dev/pkg v0.0.0-20241021183759-9b9d535af5ad
-	sigs.k8s.io/yaml v1.4.0
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
@@ -140,6 +140,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/oauth2 v0.22.0 // indirect
