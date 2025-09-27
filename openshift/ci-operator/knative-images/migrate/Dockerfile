@@ -23,13 +23,14 @@ USER 65532
 
 LABEL \
       com.redhat.component="openshift-serverless-1-serving-migrate-rhel8-container" \
-      name="openshift-serverless-1/serving-migrate-rhel8" \
+      name="openshift-serverless-1/kn-serving-storage-version-migration-rhel8" \
       version=$VERSION \
       summary="Red Hat OpenShift Serverless 1 Serving Migrate" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Migrate" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Migrate" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Migrate" \
-      io.openshift.tags="migrate"
+      io.openshift.tags="migrate" \
+      cpe="cpe:/a:redhat:openshift_serverless:1.36::el8"
 
 ENTRYPOINT ["/ko-app/migrate"]
