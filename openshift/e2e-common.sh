@@ -129,7 +129,7 @@ function install_serverless(){
   create_namespaces "${SYSTEM_NAMESPACES[@]}"
   export GOPATH=/tmp/go
   export ON_CLUSTER_BUILDS=true
-  export DOCKER_REPO_OVERRIDE=image-registry.openshift-image-registry.svc:5000/openshift-marketplace
+  export DOCKER_REPO_OVERRIDE=image-registry.openshift-image-registry.svc:5000/openshift-serverless-builds
   OPENSHIFT_CI="true" make generated-files images install-serving || return $?
 
  # Ensure tests trust the OpenShift router CA
