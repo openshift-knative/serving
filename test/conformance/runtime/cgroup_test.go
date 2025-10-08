@@ -21,6 +21,7 @@ package runtime
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"testing"
@@ -52,6 +53,25 @@ func isCgroupsV2(mounts []*types.Mount) (bool, error) {
 	return false, fmt.Errorf("Failed to find cgroup mount on /sys/fs/cgroup")
 }
 
+// from https://github.com/opencontainers/cgroups/pull/20/files
+func convertCPUSharesToCgroupV2Value(cpuShares uint64) uint64 {
+	// The value of 0 means "unset".
+	if cpuShares == 0 {
+		return 0
+	}
+	if cpuShares <= 2 {
+		return 1
+	}
+	if cpuShares >= 262144 {
+		return 10000
+	}
+	l := math.Log2(float64(cpuShares))
+	// Quadratic function which fits min, max, and default.
+	exponent := (l*l+125*l)/612.0 - 7.0/34.0
+
+	return uint64(math.Ceil(math.Pow(10, exponent)))
+}
+
 // TestMustHaveCgroupConfigured verifies that the Linux cgroups are configured based on the specified
 // resource limits and requests as delared by "MUST" in the runtime-contract.
 func TestMustHaveCgroupConfigured(t *testing.T) {
@@ -81,6 +101,9 @@ func TestMustHaveCgroupConfigured(t *testing.T) {
 		// https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/2254-cgroup-v2#phase-1-convert-from-cgroups-v1-settings-to-v2
 		"/sys/fs/cgroup/cpu.weight": fmt.Sprintf("%d", ((((resources.Requests.Cpu().MilliValue()*1024/1000)-2)*9999)/262142)+1),
 	}
+
+	// cpu.weight conversion depends on runtime version, see https://github.com/kubernetes/kubernetes/issues/131216
+	expectedCgroupsV2CpuWeightAlternativeFormula := strconv.FormatUint(convertCPUSharesToCgroupV2Value(uint64(resources.Requests.Cpu().MilliValue()*1024/1000)), 10)
 
 	cgroups := ri.Host.Cgroups
 	cgroupV2, err := isCgroupsV2(ri.Host.Mounts)
@@ -118,6 +141,16 @@ func TestMustHaveCgroupConfigured(t *testing.T) {
 			// The format is like 'max 100000'.
 			maxV2 = strings.Split(*cgroup.Value, " ")[0]
 			periodV2 = strings.Split(*cgroup.Value, " ")[1]
+		}
+
+		// cpu.weight conversion depends on runtime version, let's try the new formula first,
+		// if it fails, we fall back to the original formula we have in `expectedCgroups`
+		if cgroup.Name == "/sys/fs/cgroup/cpu.weight" {
+			if *cgroup.Value == expectedCgroupsV2CpuWeightAlternativeFormula {
+				continue
+			} else {
+				t.Logf("%s = %s, want: %s, falling back to the original cpu.weight formula", cgroup.Name, *cgroup.Value, expectedCgroupsV2CpuWeightAlternativeFormula)
+			}
 		}
 
 		if _, ok := expectedCgroups[cgroup.Name]; !ok {
