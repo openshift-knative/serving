@@ -23,8 +23,9 @@ USER 65532
 
 LABEL \
       com.redhat.component="openshift-serverless-1-serving-autoscaler-hpa-rhel8-container" \
-      name="openshift-serverless-1/serving-autoscaler-hpa-rhel8" \
+      name="openshift-serverless-1/kn-serving-autoscaler-hpa-rhel8" \
       version=$VERSION \
+      cpe="cpe:/a:redhat:openshift_serverless:1.35::el8" \
       summary="Red Hat OpenShift Serverless 1 Serving Autoscaler Hpa" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Autoscaler Hpa" \
