@@ -30,6 +30,7 @@ LABEL \
       description="Red Hat OpenShift Serverless 1 Serving Test Performance Benchmarks Load Test" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Performance Benchmarks Load Test" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Test Performance Benchmarks Load Test" \
-      io.openshift.tags="test-performance-benchmarks-load-test"
+      io.openshift.tags="test-performance-benchmarks-load-test" \
+      cpe="cpe:/a:redhat:openshift_serverless:1.35::el8"
 
 ENTRYPOINT ["/ko-app/load-test"]
