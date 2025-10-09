@@ -30,6 +30,7 @@ LABEL \
       description="Red Hat OpenShift Serverless 1 Serving Test Performance Benchmarks Dataplane Probe" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Performance Benchmarks Dataplane Probe" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Test Performance Benchmarks Dataplane Probe" \
-      io.openshift.tags="test-performance-benchmarks-dataplane-probe"
+      io.openshift.tags="test-performance-benchmarks-dataplane-probe" \
+      cpe="cpe:/a:redhat:openshift_serverless:1.35::el8"
 
 ENTRYPOINT ["/ko-app/dataplane-probe"]
