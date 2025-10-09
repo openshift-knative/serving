@@ -22,14 +22,15 @@ COPY LICENSE /licenses/
 USER 65532
 
 LABEL \
-      com.redhat.component="openshift-serverless-1-serving-cleanup-rhel8-container" \
-      name="openshift-serverless-1/serving-cleanup-rhel8" \
+      com.redhat.component="openshift-serverless-1-serving-cleanup-rhel9-container" \
+      name="openshift-serverless-1/serving-cleanup-rhel9" \
       version=$VERSION \
       summary="Red Hat OpenShift Serverless 1 Serving Cleanup" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Cleanup" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Cleanup" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Cleanup" \
-      io.openshift.tags="cleanup"
+      io.openshift.tags="cleanup" \
+      cpe="cpe:/a:redhat:openshift_serverless:1.37::el9"
 
 ENTRYPOINT ["/ko-app/cleanup"]

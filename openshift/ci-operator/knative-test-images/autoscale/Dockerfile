@@ -22,14 +22,15 @@ COPY LICENSE /licenses/
 USER 65532
 
 LABEL \
-      com.redhat.component="openshift-serverless-1-serving-test-test-images-autoscale-rhel8-container" \
-      name="openshift-serverless-1/serving-test-test-images-autoscale-rhel8" \
+      com.redhat.component="openshift-serverless-1-serving-test-test-images-autoscale-rhel9-container" \
+      name="openshift-serverless-1/serving-test-test-images-autoscale-rhel9" \
       version=$VERSION \
       summary="Red Hat OpenShift Serverless 1 Serving Test Test Images Autoscale" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Test Test Images Autoscale" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Autoscale" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Test Test Images Autoscale" \
-      io.openshift.tags="test-test-images-autoscale"
+      io.openshift.tags="test-test-images-autoscale" \
+      cpe="cpe:/a:redhat:openshift_serverless:1.37::el9"
 
 ENTRYPOINT ["/ko-app/autoscale"]

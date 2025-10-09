@@ -22,14 +22,15 @@ COPY LICENSE /licenses/
 USER 65532
 
 LABEL \
-      com.redhat.component="openshift-serverless-1-serving-default-domain-rhel8-container" \
-      name="openshift-serverless-1/serving-default-domain-rhel8" \
+      com.redhat.component="openshift-serverless-1-serving-default-domain-rhel9-container" \
+      name="openshift-serverless-1/serving-default-domain-rhel9" \
       version=$VERSION \
       summary="Red Hat OpenShift Serverless 1 Serving Default Domain" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Default Domain" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Default Domain" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Default Domain" \
-      io.openshift.tags="default-domain"
+      io.openshift.tags="default-domain" \
+      cpe="cpe:/a:redhat:openshift_serverless:1.37::el9"
 
 ENTRYPOINT ["/ko-app/default-domain"]

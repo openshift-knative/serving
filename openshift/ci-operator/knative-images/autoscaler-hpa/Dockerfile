@@ -22,14 +22,15 @@ COPY LICENSE /licenses/
 USER 65532
 
 LABEL \
-      com.redhat.component="openshift-serverless-1-serving-autoscaler-hpa-rhel8-container" \
-      name="openshift-serverless-1/serving-autoscaler-hpa-rhel8" \
+      com.redhat.component="openshift-serverless-1-serving-autoscaler-hpa-rhel9-container" \
+      name="openshift-serverless-1/serving-autoscaler-hpa-rhel9" \
       version=$VERSION \
       summary="Red Hat OpenShift Serverless 1 Serving Autoscaler Hpa" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Autoscaler Hpa" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Autoscaler Hpa" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Autoscaler Hpa" \
-      io.openshift.tags="autoscaler-hpa"
+      io.openshift.tags="autoscaler-hpa" \
+      cpe="cpe:/a:redhat:openshift_serverless:1.37::el9"
 
 ENTRYPOINT ["/ko-app/autoscaler-hpa"]
