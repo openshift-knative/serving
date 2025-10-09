@@ -1,5 +1,5 @@
 # DO NOT EDIT! Generated Dockerfile for test/test_images/volumes.
-ARG GO_BUILDER=registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.23-openshift-4.19
+ARG GO_BUILDER=registry.ci.openshift.org/openshift/release:rhel-9-release-golang-1.23-openshift-4.19
 ARG GO_RUNTIME=registry.access.redhat.com/ubi8/ubi-minimal
 
 FROM $GO_BUILDER as builder
@@ -22,14 +22,15 @@ COPY LICENSE /licenses/
 USER 65532
 
 LABEL \
-      com.redhat.component="openshift-serverless-1-serving-test-test-images-volumes-rhel8-container" \
-      name="openshift-serverless-1/serving-test-test-images-volumes-rhel8" \
+      com.redhat.component="openshift-serverless-1-serving-test-test-images-volumes-rhel9-container" \
+      name="openshift-serverless-1/serving-test-test-images-volumes-rhel9" \
       version=$VERSION \
       summary="Red Hat OpenShift Serverless 1 Serving Test Test Images Volumes" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Test Test Images Volumes" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Volumes" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Test Test Images Volumes" \
-      io.openshift.tags="test-test-images-volumes"
+      io.openshift.tags="test-test-images-volumes" \
+      cpe="cpe:/a:redhat:openshift_serverless:1.37::el9"
 
 ENTRYPOINT ["/ko-app/volumes"]
