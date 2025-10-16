@@ -72,9 +72,11 @@ function initialize_environment() {
 # Parameters: $1 - test group name (e.g., build)
 #             $2 - result (0=passed, 1=failed)
 function results_banner() {
-  local result
-  [[ $2 -eq 0 ]] && result="PASSED" || result="FAILED"
-  header "$1 tests ${result}"
+  if [[ $2 -eq 0 ]]; then
+    header "$1 tests PASSED"
+  else
+    error "$1 tests FAILED"
+  fi
 }
 
 # Run build tests. If there's no `build_tests` function, run the default
@@ -139,7 +141,7 @@ function __build_test_runner_for_module() {
   # Don't merge these two lines, or return code will always be 0.
   # Get all build tags in go code (ignore /vendor, /hack and /third_party)
   local tags
-  tags="$(go run knative.dev/toolbox/go-ls-tags@latest --joiner=,)"
+  tags="$(go_run knative.dev/toolbox/go-ls-tags@latest --joiner=,)"
   local go_pkg_dirs
   go_pkg_dirs="$(go list -tags "${tags}" ./...)" || return $?
   if [[ -z "${go_pkg_dirs}" ]]; then

@@ -30,6 +30,7 @@ LABEL \
       description="Red Hat OpenShift Serverless 1 Serving Test Test Images Hellovolume" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Hellovolume" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Test Test Images Hellovolume" \
-      io.openshift.tags="test-test-images-hellovolume"
+      io.openshift.tags="test-test-images-hellovolume" \
+      cpe="cpe:/a:redhat:openshift_serverless:1.35::el8"
 
 ENTRYPOINT ["/ko-app/hellovolume"]
