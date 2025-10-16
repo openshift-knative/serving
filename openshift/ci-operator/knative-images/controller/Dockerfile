@@ -30,6 +30,7 @@ LABEL \
       description="Red Hat OpenShift Serverless 1 Serving Controller" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Controller" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Controller" \
-      io.openshift.tags="controller"
+      io.openshift.tags="controller" \
+      cpe="cpe:/a:redhat:openshift_serverless:1.35::el8"
 
 ENTRYPOINT ["/ko-app/controller"]
