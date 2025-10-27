@@ -1,6 +1,6 @@
 module knative.dev/serving
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.1-0.20210609063737-0067dc6dcea2
@@ -21,7 +21,7 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/net v0.41.0
 	golang.org/x/sync v0.15.0
-	golang.org/x/sys v0.33.0
+	golang.org/x/sys v0.37.0
 	golang.org/x/time v0.6.0
 	google.golang.org/api v0.198.0
 	google.golang.org/grpc v1.75.1
