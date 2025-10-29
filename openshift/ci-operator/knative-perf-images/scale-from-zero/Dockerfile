@@ -30,6 +30,9 @@ LABEL \
       description="Red Hat OpenShift Serverless 1 Serving Test Performance Benchmarks Scale From Zero" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Performance Benchmarks Scale From Zero" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Test Performance Benchmarks Scale From Zero" \
-      io.openshift.tags="test-performance-benchmarks-scale-from-zero"
-
+      io.openshift.tags="test-performance-benchmarks-scale-from-zero" \
+      vendor="Red Hat, Inc." \
+      release=$VERSION \
+      cpe="cpe:/a:redhat:openshift_serverless:1.35::el8"
+      
 ENTRYPOINT ["/ko-app/scale-from-zero"]
