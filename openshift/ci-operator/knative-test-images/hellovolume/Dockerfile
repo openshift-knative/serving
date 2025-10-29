@@ -31,6 +31,8 @@ LABEL \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Hellovolume" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Test Test Images Hellovolume" \
       io.openshift.tags="test-test-images-hellovolume" \
+      vendor="Red Hat, Inc." \
+      release=$VERSION \
       cpe="cpe:/a:redhat:openshift_serverless:1.37::el9"
 
 ENTRYPOINT ["/ko-app/hellovolume"]
