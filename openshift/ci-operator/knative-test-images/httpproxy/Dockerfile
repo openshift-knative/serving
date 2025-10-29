@@ -30,6 +30,9 @@ LABEL \
       description="Red Hat OpenShift Serverless 1 Serving Test Test Images Httpproxy" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Httpproxy" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Test Test Images Httpproxy" \
-      io.openshift.tags="test-test-images-httpproxy"
-
+      io.openshift.tags="test-test-images-httpproxy" \
+      vendor="Red Hat, Inc." \
+      release=$VERSION \
+      cpe="cpe:/a:redhat:openshift_serverless:1.36::el8"
+      
 ENTRYPOINT ["/ko-app/httpproxy"]
