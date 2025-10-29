@@ -30,6 +30,9 @@ LABEL \
       description="Red Hat OpenShift Serverless 1 Serving Default Domain" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Default Domain" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Default Domain" \
-      io.openshift.tags="default-domain"
-
+      io.openshift.tags="default-domain" \
+      vendor="Red Hat, Inc." \
+      release=$VERSION \
+      cpe="cpe:/a:redhat:openshift_serverless:1.35::el8"
+      
 ENTRYPOINT ["/ko-app/default-domain"]
