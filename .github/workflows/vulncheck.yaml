@@ -1,0 +1,38 @@
+---
+name: Go Vulnerability detection
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch: # Manual workflow trigger
+
+jobs:
+  govulncheck:
+    if: github.base_ref != 'main'
+    name: detect
+    runs-on: ubuntu-latest
+    env:
+      GOPATH: ${{ github.workspace }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: ./src/github.com/${{ github.repository }}
+
+      - name: Setup Golang
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ./src/github.com/${{ github.repository }}/go.mod
+
+
+      - name: Govulncheck scan
+        working-directory: ./src/github.com/${{ github.repository }}
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./... || true
