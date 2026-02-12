@@ -36,7 +36,7 @@ index 58f508879..bddda0dd5 100644
  		Name:        netapi.ServicePortNameH2C,
 -		AppProtocol: &netapi.AppProtocolH2C,
  		Port:        int32(80),
- 		TargetPort:  intstr.FromInt(80),git
+ 		TargetPort:  intstr.FromInt(80),
  	}}
 @@ -125,7 +124,6 @@ func TestMakeK8SService(t *testing.T) {
  			}},

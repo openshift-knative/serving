@@ -184,7 +184,6 @@ func TestMakePublicService(t *testing.T) {
 			s.Spec.Ports = []corev1.ServicePort{{
 				Name:        pkgnet.ServicePortNameH2C,
 				Protocol:    corev1.ProtocolTCP,
-				AppProtocol: &pkgnet.AppProtocolH2C,
 				Port:        pkgnet.ServiceHTTP2Port,
 				TargetPort:  intstr.FromInt(networking.BackendHTTP2Port),
 			}, {
@@ -205,7 +204,6 @@ func TestMakePublicService(t *testing.T) {
 			s.Spec.Ports = []corev1.ServicePort{{
 				Name:        pkgnet.ServicePortNameH2C,
 				Protocol:    corev1.ProtocolTCP,
-				AppProtocol: &pkgnet.AppProtocolH2C,
 				Port:        pkgnet.ServiceHTTP2Port,
 				TargetPort:  intstr.FromInt(networking.BackendHTTP2Port),
 			}, {
@@ -226,7 +224,6 @@ func TestMakePublicService(t *testing.T) {
 			s.Spec.Ports = []corev1.ServicePort{{
 				Name:        pkgnet.ServicePortNameH2C,
 				Protocol:    corev1.ProtocolTCP,
-				AppProtocol: &pkgnet.AppProtocolH2C,
 				Port:        pkgnet.ServiceHTTP2Port,
 				TargetPort:  intstr.FromInt(networking.BackendHTTP2Port),
 			}, {
@@ -475,7 +472,6 @@ func TestMakePrivateService(t *testing.T) {
 			s.Spec.Ports[0] = corev1.ServicePort{
 				Name:        pkgnet.ServicePortNameH2C,
 				Protocol:    corev1.ProtocolTCP,
-				AppProtocol: &pkgnet.AppProtocolH2C,
 				Port:        pkgnet.ServiceHTTPPort,
 				TargetPort:  intstr.FromInt(networking.BackendHTTP2Port),
 			}
