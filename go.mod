@@ -26,7 +26,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.40.0
-	golang.org/x/time v0.10.0
+	golang.org/x/time v0.14.0
 	google.golang.org/api v0.198.0
 	google.golang.org/grpc v1.77.0
 	k8s.io/api v0.34.3
