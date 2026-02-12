@@ -13,7 +13,6 @@ echo "Release: $release"
 "${root}"/hack/update-deps.sh
 # Re-apply patches that touch vendor/ dir
 git apply "${root}"/openshift/patches/001-object.patch
-git apply "${root}"/openshift/patches/002-mutemetrics.patch
 git apply "${root}"/openshift/patches/003-routeretry.patch
 
 ./openshift/generate.sh
