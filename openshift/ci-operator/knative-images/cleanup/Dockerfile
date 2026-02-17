@@ -1,5 +1,5 @@
 # DO NOT EDIT! Generated Dockerfile for pkg/cleanup/cmd/cleanup.
-ARG GO_BUILDER=registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.22-openshift-4.17
+ARG GO_BUILDER=registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.25-openshift-4.17
 ARG GO_RUNTIME=registry.access.redhat.com/ubi8/ubi-minimal
 
 FROM $GO_BUILDER as builder
@@ -30,6 +30,9 @@ LABEL \
       description="Red Hat OpenShift Serverless 1 Serving Cleanup" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Cleanup" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Cleanup" \
-      io.openshift.tags="cleanup"
-
+      io.openshift.tags="cleanup" \
+      vendor="Red Hat, Inc." \
+      release=$VERSION \
+      cpe="cpe:/a:redhat:openshift_serverless:1.36::el8"
+      
 ENTRYPOINT ["/ko-app/cleanup"]
