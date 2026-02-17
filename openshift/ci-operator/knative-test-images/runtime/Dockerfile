@@ -1,5 +1,5 @@
 # DO NOT EDIT! Generated Dockerfile for test/test_images/runtime.
-ARG GO_BUILDER=registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.22-openshift-4.17
+ARG GO_BUILDER=registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.25-openshift-4.17
 ARG GO_RUNTIME=registry.access.redhat.com/ubi8/ubi-minimal
 
 FROM $GO_BUILDER as builder
@@ -30,6 +30,9 @@ LABEL \
       description="Red Hat OpenShift Serverless 1 Serving Test Test Images Runtime" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Runtime" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Test Test Images Runtime" \
-      io.openshift.tags="test-test-images-runtime"
-
+      io.openshift.tags="test-test-images-runtime" \
+      vendor="Red Hat, Inc." \
+      release=$VERSION \
+      cpe="cpe:/a:redhat:openshift_serverless:1.36::el8"
+      
 ENTRYPOINT ["/ko-app/runtime"]
