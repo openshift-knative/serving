@@ -102,7 +102,7 @@ function serverless_operator_version {
     echo 'release-1.36'
   elif [[ "$branch_name" == "release-v1.17" ]]; then
     echo 'release-1.37'
-  elif [[ "$branch_name" == "release-v1.18" ]]; then
+  elif [[ "$branch_name" == "release-v1.21" ]]; then
     echo 'release-1.38'
   else
     echo 'main'
