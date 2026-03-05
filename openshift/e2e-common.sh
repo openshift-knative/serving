@@ -443,3 +443,7 @@ function disable_feature_flags {
   sleep 30
   return $failed
 }
+
+function on_success() {
+  echo "Do nothing"
+}
