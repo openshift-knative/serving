@@ -35,6 +35,7 @@ if [ -n "$OPENSHIFT_BUILD_NAMESPACE" ]; then
 {{- if eq . "sidecarcontainer"}}$KNATIVE_SERVING_TEST_SIDECARCONTAINER{{end -}}
 {{- if eq . "hellohttp2"}}$KNATIVE_SERVING_TEST_HELLOHTTP2{{end -}}
 {{- if eq . "hellovolume"}}$KNATIVE_SERVING_TEST_HELLOVOLUME{{end -}}
+{{- if eq . "configmimic"}}$KNATIVE_SERVING_TEST_CONFIGMIMIC{{end -}}
 {{- if eq . "invalidhelloworld"}}quay.io/openshift-knative/helloworld:invalid{{end -}}
 {{end -}}
 END
@@ -102,7 +103,7 @@ function serverless_operator_version {
     echo 'release-1.36'
   elif [[ "$branch_name" == "release-v1.17" ]]; then
     echo 'release-1.37'
-  elif [[ "$branch_name" == "release-v1.18" ]]; then
+  elif [[ "$branch_name" == "release-v1.21" ]]; then
     echo 'release-1.38'
   else
     echo 'main'
@@ -130,7 +131,7 @@ function install_serverless(){
   export GOPATH=/tmp/go
   export ON_CLUSTER_BUILDS=true
   export DOCKER_REPO_OVERRIDE=image-registry.openshift-image-registry.svc:5000/openshift-serverless-builds
-  OPENSHIFT_CI="true" make generated-files images install-serving || return $?
+  OPENSHIFT_CI="true" make install-tools generated-files images install-serving || return $?
 
  # Ensure tests trust the OpenShift router CA
   trust_router_ca || return $?
@@ -441,4 +442,8 @@ function disable_feature_flags {
   # Allow settings to be picked up
   sleep 30
   return $failed
+}
+
+function on_success() {
+  echo "Do nothing"
 }
