@@ -22,14 +22,17 @@ COPY LICENSE /licenses/
 USER 65532
 
 LABEL \
-      com.redhat.component="openshift-serverless-1-serving-queue-rhel8-container" \
-      name="openshift-serverless-1/serving-queue-rhel8" \
+      com.redhat.component="openshift-serverless-1-kn-serving-queue-rhel8-container" \
+      name="openshift-serverless-1/kn-serving-queue-rhel8" \
       version=$VERSION \
       summary="Red Hat OpenShift Serverless 1 Serving Queue" \
       maintainer="serverless-support@redhat.com" \
       description="Red Hat OpenShift Serverless 1 Serving Queue" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Queue" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Queue" \
-      io.openshift.tags="queue"
-
+      io.openshift.tags="queue" \
+      vendor="Red Hat, Inc." \
+      release=$VERSION \
+      cpe="cpe:/a:redhat:openshift_serverless:1.35::el8"
+      
 ENTRYPOINT ["/ko-app/queue"]
