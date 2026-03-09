@@ -30,6 +30,9 @@ LABEL \
       description="Red Hat OpenShift Serverless 1 Serving Test Test Images Failing" \
       io.k8s.display-name="Red Hat OpenShift Serverless 1 Serving Test Test Images Failing" \
       io.k8s.description="Red Hat OpenShift Serverless Serving Test Test Images Failing" \
-      io.openshift.tags="test-test-images-failing"
-
+      io.openshift.tags="test-test-images-failing" \
+      vendor="Red Hat, Inc." \
+      release=$VERSION \
+      cpe="cpe:/a:redhat:openshift_serverless:1.36::el8"
+      
 ENTRYPOINT ["/ko-app/failing"]
