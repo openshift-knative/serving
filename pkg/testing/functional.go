@@ -258,7 +258,6 @@ func WithExternalName(name string) K8sServiceOption {
 		svc.Spec.ExternalName = name
 		svc.Spec.Ports = []corev1.ServicePort{{
 			Name:        networking.ServicePortNameH2C,
-			AppProtocol: &networking.AppProtocolH2C,
 			Port:        int32(80),
 			TargetPort:  intstr.FromInt(80),
 		}}
