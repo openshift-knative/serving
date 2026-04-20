@@ -16,5 +16,4 @@ rm -rf "$tmp_dir"
 $(go env GOPATH)/bin/generate \
   --root-dir "${repo_root_dir}" \
   --generators dockerfile \
-  --app-file-fmt "/ko-app/%s" \
-  --dockerfile-image-builder-fmt "registry.ci.openshift.org/openshift/release:rhel-9-release-golang-1.23-openshift-4.19"
+  --app-file-fmt "/ko-app/%s"
