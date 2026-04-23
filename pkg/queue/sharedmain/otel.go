@@ -113,6 +113,8 @@ func buildPrometheusProvider(cfg *config, r *resource.Resource, logger *zap.Suga
 			attribute.Key(servingmetrics.ServiceNameKey),
 			attribute.Key(servingmetrics.ConfigurationNameKey),
 			attribute.Key(servingmetrics.RevisionNameKey),
+			semconv.K8SNamespaceNameKey,
+			semconv.K8SPodNameKey,
 		)),
 	)
 	if err != nil {
