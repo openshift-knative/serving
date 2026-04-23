@@ -19,19 +19,25 @@ package sharedmain
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 
+	"github.com/prometheus/otlptranslator"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/sdk/metric"
+	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
+	otelmetric "go.opentelemetry.io/otel/metric"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.uber.org/zap"
 
 	"knative.dev/pkg/changeset"
 	"knative.dev/pkg/observability/metrics"
+	promserver "knative.dev/pkg/observability/metrics/prometheus"
 	"knative.dev/pkg/observability/semconv"
 	"knative.dev/pkg/observability/tracing"
 	"knative.dev/pkg/system"
@@ -39,34 +45,39 @@ import (
 	"knative.dev/serving/pkg/networking"
 )
 
+// observabilityMeterProvider combines the OTel metric provider interface with a Shutdown method.
+type observabilityMeterProvider interface {
+	otelmetric.MeterProvider
+	Shutdown(context.Context) error
+}
+
 func SetupObservabilityOrDie(
 	ctx context.Context,
 	cfg *config,
 	logger *zap.SugaredLogger,
-) (*metrics.MeterProvider, *tracing.TracerProvider) {
+) (observabilityMeterProvider, *tracing.TracerProvider) {
 	r := res(logger, cfg)
 
-	// Force the port to be the default queue user metrics port if it's not overridden
-	// by the operator
-	if cfg.Observability.RequestMetrics.Protocol == metrics.ProtocolPrometheus &&
-		cfg.Observability.RequestMetrics.Endpoint == "" {
-		cfg.Observability.RequestMetrics.Endpoint = fmt.Sprintf(":%d", networking.UserQueueMetricsPort)
+	var mp observabilityMeterProvider
+	if cfg.Observability.RequestMetrics.Protocol == metrics.ProtocolPrometheus {
+		mp = buildPrometheusProvider(cfg, r, logger)
+	} else {
+		meterProvider, err := metrics.NewMeterProvider(
+			ctx,
+			cfg.Observability.RequestMetrics,
+			sdkmetric.WithResource(r),
+		)
+		if err != nil {
+			logger.Fatalw("Failed to setup meter provider", zap.Error(err))
+		}
+		mp = meterProvider
 	}
 
-	meterProvider, err := metrics.NewMeterProvider(
-		ctx,
-		cfg.Observability.RequestMetrics,
-		metric.WithResource(r),
-	)
-	if err != nil {
-		logger.Fatalw("Failed to setup meter provider", zap.Error(err))
-	}
+	otel.SetMeterProvider(mp)
 
-	otel.SetMeterProvider(meterProvider)
-
-	err = runtime.Start(
+	err := runtime.Start(
 		runtime.WithMinimumReadMemStatsInterval(cfg.Observability.Runtime.ExportInterval),
-		runtime.WithMeterProvider(meterProvider),
+		runtime.WithMeterProvider(mp),
 	)
 	if err != nil {
 		logger.Fatalw("Failed to start runtime metrics", zap.Error(err))
@@ -84,7 +95,66 @@ func SetupObservabilityOrDie(
 	otel.SetTextMapPropagator(tracing.DefaultTextMapPropagator())
 	otel.SetTracerProvider(tracerProvider)
 
-	return meterProvider, tracerProvider
+	return mp, tracerProvider
+}
+
+// buildPrometheusProvider creates a Prometheus-backed meter provider that exposes
+// the serving-specific resource attributes (service, configuration, revision) as
+// constant Prometheus labels on every metric.
+func buildPrometheusProvider(cfg *config, r *resource.Resource, logger *zap.SugaredLogger) observabilityMeterProvider {
+	endpoint := cfg.Observability.RequestMetrics.Endpoint
+	if endpoint == "" {
+		endpoint = fmt.Sprintf(":%d", networking.UserQueueMetricsPort)
+	}
+
+	reader, err := otelprom.New(
+		otelprom.WithTranslationStrategy(otlptranslator.UnderscoreEscapingWithSuffixes),
+		otelprom.WithResourceAsConstantLabels(attribute.NewAllowKeysFilter(
+			attribute.Key(servingmetrics.ServiceNameKey),
+			attribute.Key(servingmetrics.ConfigurationNameKey),
+			attribute.Key(servingmetrics.RevisionNameKey),
+		)),
+	)
+	if err != nil {
+		logger.Fatalw("Failed to create prometheus exporter", zap.Error(err))
+	}
+
+	host, port, err := net.SplitHostPort(endpoint)
+	if err != nil {
+		logger.Fatalw("Invalid prometheus endpoint", zap.String("endpoint", endpoint), zap.Error(err))
+	}
+
+	server, err := promserver.NewServer(
+		promserver.WithHost(host),
+		promserver.WithPort(port),
+	)
+	if err != nil {
+		logger.Fatalw("Failed to create prometheus server", zap.Error(err))
+	}
+	go server.ListenAndServe()
+
+	sdkProvider := sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(reader),
+		sdkmetric.WithResource(r),
+	)
+
+	return &prometheusProvider{
+		MeterProvider: sdkProvider,
+		shutdownFns:   []func(context.Context) error{sdkProvider.Shutdown, server.Shutdown},
+	}
+}
+
+type prometheusProvider struct {
+	otelmetric.MeterProvider
+	shutdownFns []func(context.Context) error
+}
+
+func (p *prometheusProvider) Shutdown(ctx context.Context) error {
+	errs := make([]error, 0, len(p.shutdownFns))
+	for _, fn := range p.shutdownFns {
+		errs = append(errs, fn(ctx))
+	}
+	return errors.Join(errs...)
 }
 
 func res(logger *zap.SugaredLogger, cfg *config) *resource.Resource {
