@@ -17,6 +17,9 @@ limitations under the License.
 package handler
 
 import (
+	"sync"
+
+	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -50,4 +53,96 @@ func newMetrics(mp metric.MeterProvider) *ccMetrics {
 	}
 
 	return &m
+}
+
+var (
+	promHTTPRegisterOnce sync.Once
+
+	durationBuckets = []float64{0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10}
+
+	// Labels match the OTel-to-Prometheus naming convention (dots → underscores)
+	// used by the v1.21 otelhttp metrics.
+	httpMetricLabels = []string{
+		"http_request_method",
+		"http_response_status_code",
+		"network_protocol_name",
+		"network_protocol_version",
+		"url_scheme",
+		"k8s_namespace_name",
+		"kn_service_name",
+		"kn_configuration_name",
+		"kn_revision_name",
+	}
+
+	serverRequestDuration  *prometheus.HistogramVec
+	serverRequestBodySize  *prometheus.HistogramVec
+	serverResponseBodySize *prometheus.HistogramVec
+	clientRequestDuration  *prometheus.HistogramVec
+	clientRequestBodySize  *prometheus.HistogramVec
+)
+
+func registerPromHTTPMetrics() {
+	promHTTPRegisterOnce.Do(func() {
+		serverRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "http_server_request_duration_seconds",
+			Help:    "Duration of HTTP server requests.",
+			Buckets: durationBuckets,
+		}, httpMetricLabels)
+
+		serverRequestBodySize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "http_server_request_body_size_bytes",
+			Help:    "Size of HTTP server request bodies.",
+			Buckets: prometheus.ExponentialBuckets(1, 2, 21),
+		}, httpMetricLabels)
+
+		serverResponseBodySize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "http_server_response_body_size_bytes",
+			Help:    "Size of HTTP server response bodies.",
+			Buckets: prometheus.ExponentialBuckets(1, 2, 21),
+		}, httpMetricLabels)
+
+		clientRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "http_client_request_duration_seconds",
+			Help:    "Duration of HTTP client requests.",
+			Buckets: durationBuckets,
+		}, httpMetricLabels)
+
+		clientRequestBodySize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "http_client_request_body_size_bytes",
+			Help:    "Size of HTTP client request bodies.",
+			Buckets: prometheus.ExponentialBuckets(1, 2, 21),
+		}, httpMetricLabels)
+
+		prometheus.MustRegister(
+			serverRequestDuration,
+			serverRequestBodySize,
+			serverResponseBodySize,
+			clientRequestDuration,
+			clientRequestBodySize,
+		)
+	})
+}
+
+// revisionLabels are the labels used for DeletePartialMatch when cleaning up
+// metrics for a deleted revision.
+var revisionLabels = []string{
+	"k8s_namespace_name",
+	"kn_service_name",
+	"kn_configuration_name",
+	"kn_revision_name",
+}
+
+// DeleteRevisionHTTPMetrics removes all HTTP metrics associated with the given revision.
+func DeleteRevisionHTTPMetrics(namespace, serviceName, configName, revisionName string) {
+	labels := prometheus.Labels{
+		"k8s_namespace_name":    namespace,
+		"kn_service_name":       serviceName,
+		"kn_configuration_name": configName,
+		"kn_revision_name":      revisionName,
+	}
+	serverRequestDuration.DeletePartialMatch(labels)
+	serverRequestBodySize.DeletePartialMatch(labels)
+	serverResponseBodySize.DeletePartialMatch(labels)
+	clientRequestDuration.DeletePartialMatch(labels)
+	clientRequestBodySize.DeletePartialMatch(labels)
 }
