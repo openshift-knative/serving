@@ -236,7 +236,7 @@ func main() {
 	go activator.ReportStats(logger, statSink, statCh)
 
 	// Create and run our concurrency reporter
-	concurrencyReporter := activatorhandler.NewConcurrencyReporter(ctx, env.PodName, statCh, mp)
+	concurrencyReporter := activatorhandler.NewConcurrencyReporter(ctx, env.PodName, statCh, mp, usePrometheus)
 	go concurrencyReporter.Run(ctx.Done())
 
 	// Create activation handler chain
@@ -299,7 +299,7 @@ func main() {
 					return
 				}
 				if rev, ok := acc.(*v1.Revision); ok {
-					activatorhandler.DeleteRevisionHTTPMetrics(
+					activatorhandler.DeleteRevisionMetrics(
 						rev.Namespace,
 						rev.Labels[serving.ServiceLabelKey],
 						rev.Labels[serving.ConfigurationLabelKey],

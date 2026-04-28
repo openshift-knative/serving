@@ -75,6 +75,7 @@ func NewConcurrencyReporter(
 	podName string,
 	statCh chan []asmetrics.StatMessage,
 	mp metric.MeterProvider,
+	usePrometheus bool,
 ) *ConcurrencyReporter {
 	return &ConcurrencyReporter{
 		logger:  logging.FromContext(ctx),
@@ -83,7 +84,7 @@ func NewConcurrencyReporter(
 		rl:      revisioninformer.Get(ctx).Lister(),
 
 		stats:   make(map[types.NamespacedName]*revisionStats),
-		metrics: newMetrics(mp),
+		metrics: newMetrics(mp, usePrometheus),
 	}
 }
 
@@ -220,16 +221,20 @@ func (cr *ConcurrencyReporter) reportToMetricsBackend(key types.NamespacedName, 
 	configurationName := revision.Labels[serving.ConfigurationLabelKey]
 	serviceName := revision.Labels[serving.ServiceLabelKey]
 
-	cr.metrics.requestCC.Record(
-		context.Background(),
-		concurrency,
-		metric.WithAttributeSet(attribute.NewSet(
-			metrics.ServiceNameKey.With(serviceName),
-			metrics.ConfigurationNameKey.With(configurationName),
-			metrics.RevisionNameKey.With(revName),
-			metrics.K8sNamespaceKey.With(ns),
-		)),
-	)
+	if cr.metrics.usePrometheus {
+		requestConcurrency.WithLabelValues(ns, serviceName, configurationName, revName).Set(concurrency)
+	} else {
+		cr.metrics.requestCC.Record(
+			context.Background(),
+			concurrency,
+			metric.WithAttributeSet(attribute.NewSet(
+				metrics.ServiceNameKey.With(serviceName),
+				metrics.ConfigurationNameKey.With(configurationName),
+				metrics.RevisionNameKey.With(revName),
+				metrics.K8sNamespaceKey.With(ns),
+			)),
+		)
+	}
 }
 
 // Run runs until stopCh is closed and processes events on all incoming channels.

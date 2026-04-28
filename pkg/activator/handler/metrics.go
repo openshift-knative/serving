@@ -27,22 +27,26 @@ import (
 var scopeName = "knative.dev/serving/pkg/activator"
 
 type ccMetrics struct {
-	requestCC metric.Float64Gauge
+	requestCC     metric.Float64Gauge
+	usePrometheus bool
 }
 
-func newMetrics(mp metric.MeterProvider) *ccMetrics {
-	var (
-		m        ccMetrics
-		err      error
-		provider = mp
-	)
+func newMetrics(mp metric.MeterProvider, usePrometheus bool) *ccMetrics {
+	m := ccMetrics{usePrometheus: usePrometheus}
 
+	if usePrometheus {
+		registerPromMetrics()
+		return &m
+	}
+
+	provider := mp
 	if provider == nil {
 		provider = otel.GetMeterProvider()
 	}
 
 	meter := provider.Meter(scopeName)
 
+	var err error
 	m.requestCC, err = meter.Float64Gauge(
 		"kn.revision.request.concurrency",
 		metric.WithDescription("Concurrent requests that are routed to Activator"),
@@ -56,7 +60,7 @@ func newMetrics(mp metric.MeterProvider) *ccMetrics {
 }
 
 var (
-	promHTTPRegisterOnce sync.Once
+	promRegisterOnce sync.Once
 
 	durationBuckets = []float64{0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10}
 
@@ -74,15 +78,23 @@ var (
 		"kn_revision_name",
 	}
 
+	concurrencyLabels = []string{
+		"k8s_namespace_name",
+		"kn_service_name",
+		"kn_configuration_name",
+		"kn_revision_name",
+	}
+
 	serverRequestDuration  *prometheus.HistogramVec
 	serverRequestBodySize  *prometheus.HistogramVec
 	serverResponseBodySize *prometheus.HistogramVec
 	clientRequestDuration  *prometheus.HistogramVec
 	clientRequestBodySize  *prometheus.HistogramVec
+	requestConcurrency     *prometheus.GaugeVec
 )
 
-func registerPromHTTPMetrics() {
-	promHTTPRegisterOnce.Do(func() {
+func registerPromMetrics() {
+	promRegisterOnce.Do(func() {
 		serverRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "http_server_request_duration_seconds",
 			Help:    "Duration of HTTP server requests.",
@@ -113,27 +125,24 @@ func registerPromHTTPMetrics() {
 			Buckets: prometheus.ExponentialBuckets(1, 2, 21),
 		}, httpMetricLabels)
 
+		requestConcurrency = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "kn_revision_request_concurrency",
+			Help: "Concurrent requests that are routed to Activator.",
+		}, concurrencyLabels)
+
 		prometheus.MustRegister(
 			serverRequestDuration,
 			serverRequestBodySize,
 			serverResponseBodySize,
 			clientRequestDuration,
 			clientRequestBodySize,
+			requestConcurrency,
 		)
 	})
 }
 
-// revisionLabels are the labels used for DeletePartialMatch when cleaning up
-// metrics for a deleted revision.
-var revisionLabels = []string{
-	"k8s_namespace_name",
-	"kn_service_name",
-	"kn_configuration_name",
-	"kn_revision_name",
-}
-
-// DeleteRevisionHTTPMetrics removes all HTTP metrics associated with the given revision.
-func DeleteRevisionHTTPMetrics(namespace, serviceName, configName, revisionName string) {
+// DeleteRevisionMetrics removes all metrics associated with the given revision.
+func DeleteRevisionMetrics(namespace, serviceName, configName, revisionName string) {
 	labels := prometheus.Labels{
 		"k8s_namespace_name":    namespace,
 		"kn_service_name":       serviceName,
@@ -145,4 +154,5 @@ func DeleteRevisionHTTPMetrics(namespace, serviceName, configName, revisionName 
 	serverResponseBodySize.DeletePartialMatch(labels)
 	clientRequestDuration.DeletePartialMatch(labels)
 	clientRequestBodySize.DeletePartialMatch(labels)
+	requestConcurrency.DeletePartialMatch(labels)
 }

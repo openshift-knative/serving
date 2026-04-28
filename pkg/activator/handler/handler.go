@@ -95,7 +95,7 @@ func New(_ context.Context,
 
 	if usePrometheus {
 		transportOpts = append(transportOpts, otelhttp.WithMeterProvider(noop.NewMeterProvider()))
-		registerPromHTTPMetrics()
+		registerPromMetrics()
 	}
 
 	transport = otelhttp.NewTransport(transport, transportOpts...)

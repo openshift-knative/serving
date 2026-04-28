@@ -63,7 +63,7 @@ func BenchmarkHandlerChain(b *testing.B) {
 
 	// Buffer equal to the activator.
 	statCh := make(chan []asmetrics.StatMessage)
-	concurrencyReporter := NewConcurrencyReporter(ctx, activatorPodName, statCh, mp)
+	concurrencyReporter := NewConcurrencyReporter(ctx, activatorPodName, statCh, mp, false)
 	go concurrencyReporter.Run(ctx.Done())
 
 	// Just read and ignore all stat messages.
@@ -160,7 +160,7 @@ func TestActivatorChainHandlerWithFullDuplex(t *testing.T) {
 
 	// Buffer equal to the activator.
 	statCh := make(chan []asmetrics.StatMessage)
-	concurrencyReporter := NewConcurrencyReporter(ctx, activatorPodName, statCh, mp)
+	concurrencyReporter := NewConcurrencyReporter(ctx, activatorPodName, statCh, mp, false)
 	go concurrencyReporter.Run(ctx.Done())
 
 	// Just read and ignore all stat messages.

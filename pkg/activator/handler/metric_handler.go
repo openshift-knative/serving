@@ -32,7 +32,7 @@ import (
 // directly to Prometheus histograms (Prometheus path).
 func NewMetricHandler(podName string, next http.Handler, usePrometheus bool) *MetricHandler {
 	if usePrometheus {
-		registerPromHTTPMetrics()
+		registerPromMetrics()
 	}
 	return &MetricHandler{
 		nextHandler:   next,
