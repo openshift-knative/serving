@@ -27,8 +27,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
+	otelmetric "go.opentelemetry.io/otel/metric"
 
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -74,6 +75,9 @@ var (
 	errPodsExhausted              = errors.New("pods exhausted")
 
 	latencyBounds = []float64{0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10}
+
+	promRegisterOnce sync.Once
+	scrapeDuration   *prometheus.HistogramVec
 )
 
 // StatsScraper defines the interface for collecting Revision metrics
@@ -136,15 +140,24 @@ type serviceScraper struct {
 
 	host   string
 	url    string
-	attrs  attribute.Set
 	logger *zap.SugaredLogger
 
 	podAccessor      resources.PodAccessor
 	usePassthroughLb bool
 	podsAddressable  bool
 
-	duration metric.Float64Histogram
-	clock    clock.Clock
+	clock clock.Clock
+
+	// OTel path (non-Prometheus backends)
+	duration otelmetric.Float64Histogram
+	attrs    attribute.Set
+
+	// Prometheus path
+	usePrometheus bool
+	namespace     string
+	serviceName   string
+	configName    string
+	revisionName  string
 }
 
 // NewStatsScraper creates a new StatsScraper for the Revision which
@@ -156,11 +169,12 @@ func NewStatsScraper(
 	usePassthroughLb bool,
 	meshMode netcfg.MeshCompatibilityMode,
 	logger *zap.SugaredLogger,
-	mp metric.MeterProvider,
+	mp otelmetric.MeterProvider,
+	usePrometheus bool,
 ) StatsScraper {
 	directClient := newHTTPScrapeClient(client)
 	meshClient := newHTTPScrapeClient(noKeepaliveClient)
-	return newServiceScraperWithClient(metric, revisionName, podAccessor, usePassthroughLb, meshMode, directClient, meshClient, logger, mp)
+	return newServiceScraperWithClient(metric, revisionName, podAccessor, usePassthroughLb, meshMode, directClient, meshClient, logger, mp, usePrometheus)
 }
 
 func newServiceScraperWithClient(
@@ -171,23 +185,13 @@ func newServiceScraperWithClient(
 	meshMode netcfg.MeshCompatibilityMode,
 	directClient, meshClient scrapeClient,
 	logger *zap.SugaredLogger,
-	mp metric.MeterProvider,
+	mp otelmetric.MeterProvider,
+	usePrometheus bool,
 ) *serviceScraper {
 	svcName := m.Labels[serving.ServiceLabelKey]
 	cfgName := m.Labels[serving.ConfigurationLabelKey]
 
-	meter := mp.Meter(scopeName)
-	metric, err := meter.Float64Histogram(
-		"kn.autoscaler.scrape.duration",
-		metric.WithDescription("The duration of scraping the revision"),
-		metric.WithUnit("s"),
-		metric.WithExplicitBucketBoundaries(latencyBounds...),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	return &serviceScraper{
+	s := &serviceScraper{
 		meshMode:         meshMode,
 		directClient:     directClient,
 		meshClient:       meshClient,
@@ -198,14 +202,52 @@ func newServiceScraperWithClient(
 		usePassthroughLb: usePassthroughLb,
 		logger:           logger,
 		clock:            clock.RealClock{},
-		duration:         metric,
-		attrs: attribute.NewSet(
+		usePrometheus:    usePrometheus,
+		namespace:        m.ObjectMeta.Namespace,
+		serviceName:      svcName,
+		configName:       cfgName,
+		revisionName:     revisionName,
+	}
+
+	if usePrometheus {
+		promRegisterOnce.Do(func() {
+			scrapeDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+				Name:    "kn_autoscaler_scrape_duration_seconds",
+				Help:    "The duration of scraping the revision",
+				Buckets: latencyBounds,
+			}, []string{"namespace_name", "service_name", "configuration_name", "revision_name"})
+			prometheus.MustRegister(scrapeDuration)
+		})
+	} else {
+		meter := mp.Meter(scopeName)
+		h, err := meter.Float64Histogram(
+			"kn.autoscaler.scrape.duration",
+			otelmetric.WithDescription("The duration of scraping the revision"),
+			otelmetric.WithUnit("s"),
+			otelmetric.WithExplicitBucketBoundaries(latencyBounds...),
+		)
+		if err != nil {
+			panic(err)
+		}
+		s.duration = h
+		s.attrs = attribute.NewSet(
 			semconv.K8SNamespaceName(m.ObjectMeta.Namespace),
 			metrics.ServiceNameKey.With(svcName),
 			metrics.ConfigurationNameKey.With(cfgName),
 			// TODO: Re-enable when OTel has the ability to remove attributes
 			// metrics.RevisionNameKey.With(revisionName),
-		),
+		)
+	}
+
+	return s
+}
+
+// Close removes the scrape duration metric for this scraper's label set when
+// using Prometheus, preventing stale metrics from persisting after the revision
+// is deleted.
+func (s *serviceScraper) Close() {
+	if s.usePrometheus {
+		scrapeDuration.DeleteLabelValues(s.namespace, s.serviceName, s.configName, s.revisionName)
 	}
 }
 
@@ -226,8 +268,11 @@ func (s *serviceScraper) Scrape(window time.Duration) (stat Stat, err error) {
 			return
 		}
 		scrapeTime := s.clock.Since(startTime)
-		scrapeTimeSec := scrapeTime.Seconds()
-		s.duration.Record(context.Background(), scrapeTimeSec, metric.WithAttributeSet(s.attrs))
+		if s.usePrometheus {
+			scrapeDuration.WithLabelValues(s.namespace, s.serviceName, s.configName, s.revisionName).Observe(scrapeTime.Seconds())
+		} else {
+			s.duration.Record(context.Background(), scrapeTime.Seconds(), otelmetric.WithAttributeSet(s.attrs))
+		}
 	}()
 
 	switch s.meshMode {
