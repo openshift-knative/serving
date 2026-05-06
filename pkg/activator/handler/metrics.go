@@ -64,6 +64,9 @@ var (
 
 	durationBuckets = []float64{0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10}
 
+	// OTel SDK default histogram boundaries (reader.go DefaultAggregationSelector for InstrumentKindHistogram).
+	bodySizeBuckets = []float64{0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000}
+
 	// Labels match the OTel-to-Prometheus naming convention (dots → underscores)
 	// used by the v1.21 otelhttp metrics.
 	httpMetricLabels = []string{
@@ -104,13 +107,13 @@ func registerPromMetrics() {
 		serverRequestBodySize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "http_server_request_body_size_bytes",
 			Help:    "Size of HTTP server request bodies.",
-			Buckets: prometheus.ExponentialBuckets(1, 2, 21),
+			Buckets: bodySizeBuckets,
 		}, httpMetricLabels)
 
 		serverResponseBodySize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "http_server_response_body_size_bytes",
 			Help:    "Size of HTTP server response bodies.",
-			Buckets: prometheus.ExponentialBuckets(1, 2, 21),
+			Buckets: bodySizeBuckets,
 		}, httpMetricLabels)
 
 		clientRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -122,7 +125,7 @@ func registerPromMetrics() {
 		clientRequestBodySize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "http_client_request_body_size_bytes",
 			Help:    "Size of HTTP client request bodies.",
-			Buckets: prometheus.ExponentialBuckets(1, 2, 21),
+			Buckets: bodySizeBuckets,
 		}, httpMetricLabels)
 
 		requestConcurrency = prometheus.NewGaugeVec(prometheus.GaugeOpts{
