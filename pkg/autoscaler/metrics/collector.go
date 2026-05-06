@@ -343,6 +343,9 @@ func newCollection(metric *autoscalingv1alpha1.Metric, scraper StatsScraper, clo
 func (c *collection) close() {
 	close(c.stopCh)
 	c.grp.Wait()
+	if closer, ok := c.getScraper().(interface{ Close() }); ok {
+		closer.Close()
+	}
 }
 
 // updateMetric safely updates the metric stored in the collection.

@@ -619,7 +619,7 @@ func newTestReporter(t *testing.T) (*ConcurrencyReporter, context.Context, conte
 	// Buffered channel permits avoiding sending the test commands on the separate go routine
 	// simplifying main test process.
 	statCh := make(chan []asmetrics.StatMessage, 10)
-	return NewConcurrencyReporter(ctx, activatorPodName, statCh, provider), ctx, cancel, reader
+	return NewConcurrencyReporter(ctx, activatorPodName, statCh, provider, false), ctx, cancel, reader
 }
 
 func revisionInformer(ctx context.Context, revs ...*v1.Revision) {
@@ -638,7 +638,7 @@ func BenchmarkConcurrencyReporterHandler(b *testing.B) {
 
 	// Buffer equal to the activator.
 	statCh := make(chan []asmetrics.StatMessage)
-	cr := NewConcurrencyReporter(ctx, activatorPodName, statCh, nil)
+	cr := NewConcurrencyReporter(ctx, activatorPodName, statCh, nil, false)
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -708,7 +708,7 @@ func BenchmarkConcurrencyReporterReport(b *testing.B) {
 
 			// Different to the activator but doesn't matter as it isn't used in the test.
 			statCh := make(chan []asmetrics.StatMessage, revs)
-			cr := NewConcurrencyReporter(ctx, activatorPodName, statCh, nil)
+			cr := NewConcurrencyReporter(ctx, activatorPodName, statCh, nil, false)
 
 			fake := fakeservingclient.Get(ctx)
 			revisions := fakerevisioninformer.Get(ctx)

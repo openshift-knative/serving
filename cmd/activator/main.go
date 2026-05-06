@@ -36,7 +36,9 @@ import (
 
 	// Injection related imports.
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/metric/noop"
 
+	"k8s.io/client-go/tools/cache"
 	netcfg "knative.dev/networking/pkg/config"
 	netprobe "knative.dev/networking/pkg/http/probe"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
@@ -47,6 +49,7 @@ import (
 	pkglogging "knative.dev/pkg/logging"
 	"knative.dev/pkg/logging/logkey"
 	pkgnet "knative.dev/pkg/network"
+	pkgmetrics "knative.dev/pkg/observability/metrics"
 	k8sruntime "knative.dev/pkg/observability/runtime/k8s"
 	"knative.dev/pkg/signals"
 	"knative.dev/pkg/system"
@@ -58,13 +61,17 @@ import (
 	activatorhandler "knative.dev/serving/pkg/activator/handler"
 	activatornet "knative.dev/serving/pkg/activator/net"
 	apiconfig "knative.dev/serving/pkg/apis/config"
+	"knative.dev/serving/pkg/apis/serving"
+	v1 "knative.dev/serving/pkg/apis/serving/v1"
 	asmetrics "knative.dev/serving/pkg/autoscaler/metrics"
+	revisioninformer "knative.dev/serving/pkg/client/injection/informers/serving/v1/revision"
 	pkghttp "knative.dev/serving/pkg/http"
 	"knative.dev/serving/pkg/http/handler"
 	"knative.dev/serving/pkg/logging"
 	"knative.dev/serving/pkg/networking"
 	o11yconfigmap "knative.dev/serving/pkg/observability/configmap"
 	"knative.dev/serving/pkg/observability/otel"
+	"knative.dev/pkg/kmeta"
 )
 
 const (
@@ -135,6 +142,12 @@ func main() {
 	pprof := k8sruntime.NewProfilingServer(logger.Named("pprof"))
 
 	mp, tp := otel.SetupObservabilityOrDie(ctx, "activator", logger, pprof)
+
+	obsCfg, err := otel.GetObservabilityConfig(ctx)
+	if err != nil {
+		logger.Fatalw("Failed to read observability config", zap.Error(err))
+	}
+	usePrometheus := obsCfg.Metrics.Protocol == pkgmetrics.ProtocolPrometheus
 
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -223,12 +236,12 @@ func main() {
 	go activator.ReportStats(logger, statSink, statCh)
 
 	// Create and run our concurrency reporter
-	concurrencyReporter := activatorhandler.NewConcurrencyReporter(ctx, env.PodName, statCh, mp)
+	concurrencyReporter := activatorhandler.NewConcurrencyReporter(ctx, env.PodName, statCh, mp, usePrometheus)
 	go concurrencyReporter.Run(ctx.Done())
 
 	// Create activation handler chain
 	// Note: innermost handlers are specified first, ie. the last handler in the chain will be executed first
-	ah := activatorhandler.New(ctx, throttler, transport, networkConfig.EnableMeshPodAddressability, logger, tlsEnabled, tp)
+	ah := activatorhandler.New(ctx, throttler, transport, networkConfig.EnableMeshPodAddressability, logger, tlsEnabled, tp, usePrometheus)
 	ah = handler.NewTimeoutHandler(ah, "activator request timeout", func(r *http.Request) (time.Duration, time.Duration, time.Duration) {
 		if rev := activatorhandler.RevisionFrom(r.Context()); rev != nil {
 			responseStartTimeout := 0 * time.Second
@@ -256,15 +269,18 @@ func main() {
 
 	// NOTE: MetricHandler is being used as the outermost handler of the meaty bits. We're not interested in measuring
 	// the healthchecks or probes.
-	ah = activatorhandler.NewMetricAttributeHandler(env.PodName, ah)
+	ah = activatorhandler.NewMetricHandler(env.PodName, ah, usePrometheus)
 	// We need the context handler to run first so ctx gets the revision info.
 	ah = activatorhandler.WrapActivatorHandlerWithFullDuplex(ah, logger)
 	ah = activatorhandler.NewContextHandler(ctx, ah, configStore)
 
-	ah = otelhttp.NewHandler(ah, "handle",
-		otelhttp.WithTracerProvider(tp),
-		otelhttp.WithMeterProvider(mp),
-	)
+	otelOpts := []otelhttp.Option{otelhttp.WithTracerProvider(tp)}
+	if usePrometheus {
+		otelOpts = append(otelOpts, otelhttp.WithMeterProvider(noop.NewMeterProvider()))
+	} else {
+		otelOpts = append(otelOpts, otelhttp.WithMeterProvider(mp))
+	}
+	ah = otelhttp.NewHandler(ah, "handle", otelOpts...)
 
 	// Network probe handlers.
 	ah = &activatorhandler.ProbeHandler{NextHandler: ah}
@@ -273,6 +289,26 @@ func main() {
 	sigCtx := signals.NewContext()
 	hc := newHealthCheck(sigCtx, logger, statSink)
 	ah = &activatorhandler.HealthHandler{HealthCheck: hc, NextHandler: ah, Logger: logger}
+
+	if usePrometheus {
+		revisioninformer.Get(ctx).Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+			DeleteFunc: func(obj interface{}) {
+				acc, err := kmeta.DeletionHandlingAccessor(obj)
+				if err != nil {
+					logger.Warnw("Revision delete: failed to extract accessor", zap.Error(err))
+					return
+				}
+				if rev, ok := acc.(*v1.Revision); ok {
+					activatorhandler.DeleteRevisionMetrics(
+						rev.Namespace,
+						rev.Labels[serving.ServiceLabelKey],
+						rev.Labels[serving.ConfigurationLabelKey],
+						rev.Name,
+					)
+				}
+			},
+		})
+	}
 
 	// Watch the logging config map and dynamically update logging levels.
 	configMapWatcher.Watch(pkglogging.ConfigMapName(), pkglogging.UpdateLevelFromConfigMap(logger, atomicLevel, component))

@@ -63,7 +63,7 @@ func BenchmarkHandlerChain(b *testing.B) {
 
 	// Buffer equal to the activator.
 	statCh := make(chan []asmetrics.StatMessage)
-	concurrencyReporter := NewConcurrencyReporter(ctx, activatorPodName, statCh, mp)
+	concurrencyReporter := NewConcurrencyReporter(ctx, activatorPodName, statCh, mp, false)
 	go concurrencyReporter.Run(ctx.Done())
 
 	// Just read and ignore all stat messages.
@@ -86,11 +86,11 @@ func BenchmarkHandlerChain(b *testing.B) {
 	})
 
 	// Make sure to update this if the activator's main file changes.
-	ah := New(ctx, fakeThrottler{}, rt, false, logger, false /* TLS */, tp)
+	ah := New(ctx, fakeThrottler{}, rt, false, logger, false /* TLS */, tp, false)
 	ah = concurrencyReporter.Handler(ah)
 	ah = NewTracingAttributeHandler(tp, ah)
 	ah, _ = pkghttp.NewRequestLogHandler(ah, io.Discard, "", nil, false)
-	ah = NewMetricAttributeHandler(activatorPodName, ah)
+	ah = NewMetricHandler(activatorPodName, ah, false)
 	ah = NewContextHandler(ctx, ah, configStore)
 	ah = &ProbeHandler{NextHandler: ah}
 	ah = netprobe.NewHandler(ah)
@@ -160,7 +160,7 @@ func TestActivatorChainHandlerWithFullDuplex(t *testing.T) {
 
 	// Buffer equal to the activator.
 	statCh := make(chan []asmetrics.StatMessage)
-	concurrencyReporter := NewConcurrencyReporter(ctx, activatorPodName, statCh, mp)
+	concurrencyReporter := NewConcurrencyReporter(ctx, activatorPodName, statCh, mp, false)
 	go concurrencyReporter.Run(ctx.Done())
 
 	// Just read and ignore all stat messages.
@@ -206,7 +206,7 @@ func TestActivatorChainHandlerWithFullDuplex(t *testing.T) {
 	ah = concurrencyReporter.Handler(proxyWithMiddleware)
 	ah = NewTracingAttributeHandler(tp, ah)
 	ah, _ = pkghttp.NewRequestLogHandler(ah, io.Discard, "", nil, false)
-	ah = NewMetricAttributeHandler(activatorPodName, ah)
+	ah = NewMetricHandler(activatorPodName, ah, false)
 	ah = WrapActivatorHandlerWithFullDuplex(ah, logger)
 	ah = NewContextHandler(ctx, ah, configStore)
 	ah = &ProbeHandler{NextHandler: ah}

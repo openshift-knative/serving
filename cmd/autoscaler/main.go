@@ -45,6 +45,7 @@ import (
 	"knative.dev/pkg/injection/sharedmain"
 	"knative.dev/pkg/leaderelection"
 	"knative.dev/pkg/logging"
+	pkgmetrics "knative.dev/pkg/observability/metrics"
 	k8sruntime "knative.dev/pkg/observability/runtime/k8s"
 	"knative.dev/pkg/signals"
 	"knative.dev/pkg/system"
@@ -144,8 +145,14 @@ func main() {
 		logger.Fatalw("Failed to construct network config", zap.Error(err))
 	}
 
+	obsCfg, err := otel.GetObservabilityConfig(ctx)
+	if err != nil {
+		logger.Fatalw("Failed to read observability config", zap.Error(err))
+	}
+	usePrometheus := obsCfg.Metrics.Protocol == pkgmetrics.ProtocolPrometheus
+
 	collector := asmetrics.NewMetricCollector(
-		statsScraperFactoryFunc(podLister, networkConfig.EnableMeshPodAddressability, networkConfig.MeshCompatibilityMode, mp), logger)
+		statsScraperFactoryFunc(podLister, networkConfig.EnableMeshPodAddressability, networkConfig.MeshCompatibilityMode, mp, usePrometheus), logger)
 
 	// Set up scalers.
 	multiScaler := scaling.NewMultiScaler(ctx.Done(),
@@ -274,7 +281,7 @@ func uniScalerFactoryFunc(
 	}
 }
 
-func statsScraperFactoryFunc(podLister corev1listers.PodLister, usePassthroughLb bool, meshMode netcfg.MeshCompatibilityMode, mp metric.MeterProvider) asmetrics.StatsScraperFactory {
+func statsScraperFactoryFunc(podLister corev1listers.PodLister, usePassthroughLb bool, meshMode netcfg.MeshCompatibilityMode, mp metric.MeterProvider, usePrometheus bool) asmetrics.StatsScraperFactory {
 	return func(metric *autoscalingv1alpha1.Metric, logger *zap.SugaredLogger) (asmetrics.StatsScraper, error) {
 		if metric.Spec.ScrapeTarget == "" {
 			return nil, nil
@@ -286,7 +293,7 @@ func statsScraperFactoryFunc(podLister corev1listers.PodLister, usePassthroughLb
 		}
 
 		podAccessor := resources.NewPodAccessor(podLister, metric.Namespace, revisionName)
-		return asmetrics.NewStatsScraper(metric, revisionName, podAccessor, usePassthroughLb, meshMode, logger, mp), nil
+		return asmetrics.NewStatsScraper(metric, revisionName, podAccessor, usePassthroughLb, meshMode, logger, mp, usePrometheus), nil
 	}
 }
 

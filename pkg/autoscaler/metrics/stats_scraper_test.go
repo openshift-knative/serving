@@ -99,7 +99,7 @@ func TestNewServiceScraperWithClientHappyCase(t *testing.T) {
 	accessor := resources.NewPodAccessor(
 		fakepodsinformer.Get(ctx).Lister(),
 		testNamespace, testRevision)
-	sc := NewStatsScraper(metric, testRevision, accessor, false, netcfg.MeshCompatibilityModeAuto, logtesting.TestLogger(t), mp)
+	sc := NewStatsScraper(metric, testRevision, accessor, false, netcfg.MeshCompatibilityModeAuto, logtesting.TestLogger(t), mp, false)
 	if svcS, want := sc.(*serviceScraper), urlFromTarget(testRevision+"-zhudex", testNamespace); svcS.url != want {
 		t.Errorf("scraper.url = %s, want: %s", svcS.url, want)
 	}
@@ -802,7 +802,7 @@ func serviceScraperForTest(ctx context.Context, t *testing.T, meshMode netcfg.Me
 		fakepodsinformer.Get(ctx).Lister(),
 		testNamespace, testRevision)
 	logger := logtesting.TestLogger(t)
-	ss := newServiceScraperWithClient(metric, testRevision, accessor, usePassthroughLb, meshMode, directClient, meshClient, logger, mp)
+	ss := newServiceScraperWithClient(metric, testRevision, accessor, usePassthroughLb, meshMode, directClient, meshClient, logger, mp, false)
 	ss.podsAddressable = podsAddressable
 	return ss
 }

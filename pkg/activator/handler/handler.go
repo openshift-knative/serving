@@ -24,10 +24,12 @@ import (
 	"net/http/httputil"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace"
 
 	"go.uber.org/zap"
@@ -40,6 +42,7 @@ import (
 	pkghandler "knative.dev/pkg/network/handlers"
 	"knative.dev/serving/pkg/activator"
 	apiconfig "knative.dev/serving/pkg/apis/config"
+	"knative.dev/serving/pkg/apis/serving"
 	pkghttp "knative.dev/serving/pkg/http"
 	"knative.dev/serving/pkg/networking"
 	"knative.dev/serving/pkg/queue"
@@ -71,16 +74,15 @@ func New(_ context.Context,
 	logger *zap.SugaredLogger,
 	tlsEnabled bool,
 	tp trace.TracerProvider,
+	usePrometheus bool,
 ) http.Handler {
 	if tp == nil {
 		tp = otel.GetTracerProvider()
 	}
 
-	transport = otelhttp.NewTransport(
-		transport,
+	transportOpts := []otelhttp.Option{
 		otelhttp.WithTracerProvider(tp),
 		otelhttp.WithFilter(func(r *http.Request) bool {
-			// Don't trace kubelet probes
 			return !network.IsKubeletProbe(r)
 		}),
 		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
@@ -89,7 +91,18 @@ func New(_ context.Context,
 			}
 			return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 		}),
-	)
+	}
+
+	if usePrometheus {
+		transportOpts = append(transportOpts, otelhttp.WithMeterProvider(noop.NewMeterProvider()))
+		registerPromMetrics()
+	}
+
+	transport = otelhttp.NewTransport(transport, transportOpts...)
+
+	if usePrometheus {
+		transport = &promClientMetricTransport{base: transport}
+	}
 
 	tracer := tp.Tracer("knative.dev/serving/pkg/activator")
 
@@ -183,4 +196,44 @@ func WrapActivatorHandlerWithFullDuplex(h http.Handler, logger *zap.SugaredLogge
 		}
 		h.ServeHTTP(w, r)
 	})
+}
+
+// promClientMetricTransport wraps an http.RoundTripper and records
+// client-side HTTP metrics to Prometheus histograms.
+type promClientMetricTransport struct {
+	base http.RoundTripper
+}
+
+func (t *promClientMetricTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	start := time.Now()
+	resp, err := t.base.RoundTrip(r)
+
+	rev := RevisionFrom(r.Context())
+	if rev == nil {
+		return resp, err
+	}
+
+	ns := rev.Namespace
+	svc := rev.Labels[serving.ServiceLabelKey]
+	cfg := rev.Labels[serving.ConfigurationLabelKey]
+	revName := rev.Name
+
+	method := standardizeMethod(r.Method)
+	protoName, protoVersion := protoInfo(r.Proto)
+	scheme := urlScheme(r.URL != nil && r.URL.Scheme == "https")
+
+	statusCode := "0"
+	if resp != nil {
+		statusCode = strconv.Itoa(resp.StatusCode)
+	}
+
+	// Label order must match httpMetricLabels in metrics.go
+	labels := []string{method, statusCode, protoName, protoVersion, scheme, ns, svc, cfg, revName}
+
+	clientRequestDuration.WithLabelValues(labels...).Observe(time.Since(start).Seconds())
+	if r.ContentLength >= 0 {
+		clientRequestBodySize.WithLabelValues(labels...).Observe(float64(r.ContentLength))
+	}
+
+	return resp, err
 }

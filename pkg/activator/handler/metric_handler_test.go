@@ -64,7 +64,7 @@ func TestRequestMetricHandler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.label, func(t *testing.T) {
-			handler := NewMetricAttributeHandler(testPod, test.baseHandler)
+			handler := NewMetricHandler(testPod, test.baseHandler, false)
 
 			labeler := &otelhttp.Labeler{}
 
@@ -120,7 +120,7 @@ func BenchmarkMetricHandler(b *testing.B) {
 
 	reqCtx = otelhttp.ContextWithLabeler(reqCtx, &otelhttp.Labeler{})
 
-	handler := NewMetricAttributeHandler("benchPod", baseHandler)
+	handler := NewMetricHandler("benchPod", baseHandler, false)
 
 	resp := httptest.NewRecorder()
 	b.Run("sequential", func(b *testing.B) {
