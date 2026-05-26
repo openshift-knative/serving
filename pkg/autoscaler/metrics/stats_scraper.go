@@ -215,7 +215,7 @@ func newServiceScraperWithClient(
 				Name:    "kn_autoscaler_scrape_duration_seconds",
 				Help:    "The duration of scraping the revision",
 				Buckets: latencyBounds,
-			}, []string{"namespace_name", "service_name", "configuration_name", "revision_name"})
+			}, []string{"k8s_namespace_name", "kn_service_name", "kn_configuration_name", "kn_revision_name"})
 			prometheus.MustRegister(scrapeDuration)
 		})
 	} else {
