@@ -7,8 +7,7 @@ metadata:
   name: kn-serving-test-httpproxy-115
 spec:
   componentName: kn-serving-test-httpproxy-115
-  application: serverless-operator-135
-   
+  application: serverless-operator-135 
   source:
     git:
       url: https://github.com/openshift-knative/serving.git
