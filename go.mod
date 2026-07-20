@@ -18,12 +18,12 @@ require (
 	github.com/tsenart/vegeta/v12 v12.13.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.64.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.64.0
-	go.opentelemetry.io/otel v1.39.0
+	go.opentelemetry.io/otel v1.41.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.61.0
-	go.opentelemetry.io/otel/metric v1.39.0
+	go.opentelemetry.io/otel/metric v1.41.0
 	go.opentelemetry.io/otel/sdk v1.39.0
 	go.opentelemetry.io/otel/sdk/metric v1.39.0
-	go.opentelemetry.io/otel/trace v1.39.0
+	go.opentelemetry.io/otel/trace v1.41.0
 	go.uber.org/automaxprocs v1.6.0
 	go.uber.org/zap v1.27.1
 	go.yaml.in/yaml/v3 v3.0.4
@@ -32,11 +32,11 @@ require (
 	golang.org/x/time v0.10.0
 	google.golang.org/api v0.198.0
 	google.golang.org/grpc v1.77.0
-	k8s.io/api v0.34.5
-	k8s.io/apiextensions-apiserver v0.34.5
-	k8s.io/apimachinery v0.34.5
-	k8s.io/client-go v0.34.5
-	k8s.io/code-generator v0.34.5
+	k8s.io/api v0.34.9
+	k8s.io/apiextensions-apiserver v0.34.9
+	k8s.io/apimachinery v0.34.9
+	k8s.io/client-go v0.34.9
+	k8s.io/code-generator v0.34.9
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 	knative.dev/caching v0.0.0-20260531001210-d0eab7b9581a
