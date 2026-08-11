@@ -313,10 +313,21 @@ func main() {
 	time.Sleep(pkgnet.DefaultDrainTimeout)
 	logger.Info("Done waiting, shutting down servers.")
 
-	// Drain outstanding requests, and stop accepting new ones.
+	// Politely ask existing clients to please go away
 	for _, server := range servers {
-		server.Shutdown(context.Background())
+		server.SetKeepAlivesEnabled(false)
 	}
+
+	// Drain outstanding requests, and stop accepting new ones.
+	var wg sync.WaitGroup
+	wg.Add(len(servers))
+	for _, server := range servers {
+		go func(s *http.Server) {
+			defer wg.Done()
+			s.Shutdown(context.Background())
+		}(server)
+	}
+	wg.Wait()
 	logger.Info("Servers shutdown.")
 }
 
