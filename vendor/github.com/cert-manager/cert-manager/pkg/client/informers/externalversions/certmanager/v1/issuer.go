@@ -19,15 +19,16 @@ limitations under the License.
 package v1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	apiscertmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	versioned "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/cert-manager/cert-manager/pkg/client/informers/externalversions/internalinterfaces"
-	v1 "github.com/cert-manager/cert-manager/pkg/client/listers/certmanager/v1"
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/client/listers/certmanager/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -36,7 +37,7 @@ import (
 // Issuers.
 type IssuerInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1.IssuerLister
+	Lister() certmanagerv1.IssuerLister
 }
 
 type issuerInformer struct {
@@ -49,42 +50,67 @@ type issuerInformer struct {
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewIssuerInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredIssuerInformer(client, namespace, resyncPeriod, indexers, nil)
+	return NewIssuerInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
 }
 
 // NewFilteredIssuerInformer constructs a new informer for Issuer type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewFilteredIssuerInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return cache.NewSharedIndexInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+	return NewIssuerInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewIssuerInformerWithOptions constructs a new informer for Issuer type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewIssuerInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	gvr := schema.GroupVersionResource{Group: "cert-manager.io", Version: "v1", Resource: "issuers"}
+	identifier := options.InformerName.WithResource(gvr)
+	tweakListOptions := options.TweakListOptions
+	return cache.NewSharedIndexInformerWithOptions(
+		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
+			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.CertmanagerV1().Issuers(namespace).List(context.TODO(), options)
+				return client.CertmanagerV1().Issuers(namespace).List(context.Background(), opts)
 			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.CertmanagerV1().Issuers(namespace).Watch(context.TODO(), options)
+				return client.CertmanagerV1().Issuers(namespace).Watch(context.Background(), opts)
 			},
+			ListWithContextFunc: func(ctx context.Context, opts metav1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&opts)
+				}
+				return client.CertmanagerV1().Issuers(namespace).List(ctx, opts)
+			},
+			WatchFuncWithContext: func(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&opts)
+				}
+				return client.CertmanagerV1().Issuers(namespace).Watch(ctx, opts)
+			},
+		}, client),
+		&apiscertmanagerv1.Issuer{},
+		cache.SharedIndexInformerOptions{
+			ResyncPeriod: options.ResyncPeriod,
+			Indexers:     options.Indexers,
+			Identifier:   identifier,
 		},
-		&certmanagerv1.Issuer{},
-		resyncPeriod,
-		indexers,
 	)
 }
 
 func (f *issuerInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredIssuerInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewIssuerInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *issuerInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&certmanagerv1.Issuer{}, f.defaultInformer)
+	return f.factory.InformerFor(&apiscertmanagerv1.Issuer{}, f.defaultInformer)
 }
 
-func (f *issuerInformer) Lister() v1.IssuerLister {
-	return v1.NewIssuerLister(f.Informer().GetIndexer())
+func (f *issuerInformer) Lister() certmanagerv1.IssuerLister {
+	return certmanagerv1.NewIssuerLister(f.Informer().GetIndexer())
 }
