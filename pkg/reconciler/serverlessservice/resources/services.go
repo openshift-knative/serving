@@ -62,7 +62,6 @@ func makePublicServicePorts(sks *v1alpha1.ServerlessService) []corev1.ServicePor
 	ports := []corev1.ServicePort{{
 		Name:        pkgnet.ServicePortName(sks.Spec.ProtocolType),
 		Protocol:    corev1.ProtocolTCP,
-		AppProtocol: pkgnet.AppProtocol(sks.Spec.ProtocolType),
 		//nolint:gosec //ignore integer overflow since pkgnet is bounded
 		Port:       int32(pkgnet.ServicePort(sks.Spec.ProtocolType)),
 		TargetPort: targetPort(sks),
@@ -148,7 +147,6 @@ func MakePrivateService(sks *v1alpha1.ServerlessService, selector map[string]str
 			Ports: []corev1.ServicePort{{
 				Name:        pkgnet.ServicePortName(sks.Spec.ProtocolType),
 				Protocol:    corev1.ProtocolTCP,
-				AppProtocol: pkgnet.AppProtocol(sks.Spec.ProtocolType),
 				Port:        pkgnet.ServiceHTTPPort,
 				// This one is matching the public one, since this is the
 				// port queue-proxy listens on.
