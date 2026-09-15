@@ -17,7 +17,6 @@ limitations under the License.
 package v1
 
 import (
-	"cmp"
 	"context"
 	"slices"
 	"strconv"
@@ -228,19 +227,14 @@ func (rs *RevisionSpec) defaultSecurityContext(psc *corev1.PodSecurityContext, c
 	if updatedSC.AllowPrivilegeEscalation == nil {
 		updatedSC.AllowPrivilegeEscalation = ptr.Bool(false)
 	}
-	if psc.SeccompProfile == nil || psc.SeccompProfile.Type == "" {
-		updatedSC.SeccompProfile = cmp.Or(updatedSC.SeccompProfile, &corev1.SeccompProfile{})
-		if updatedSC.SeccompProfile.Type == "" {
-			updatedSC.SeccompProfile.Type = corev1.SeccompProfileTypeRuntimeDefault
-		}
-	}
+
 	if updatedSC.Capabilities == nil {
 		updatedSC.Capabilities = &corev1.Capabilities{}
 		updatedSC.Capabilities.Drop = []corev1.Capability{"ALL"}
 		// Default in NET_BIND_SERVICE to allow binding to low-numbered ports.
 		needsLowPort := false
 		for _, p := range container.Ports {
-			if p.ContainerPort < 1024 {
+			if p.ContainerPort > 0 && p.ContainerPort < 1024 {
 				needsLowPort = true
 				break
 			}
