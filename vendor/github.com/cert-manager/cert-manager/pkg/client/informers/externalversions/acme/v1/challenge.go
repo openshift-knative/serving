@@ -19,15 +19,16 @@ limitations under the License.
 package v1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
+	apisacmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	versioned "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/cert-manager/cert-manager/pkg/client/informers/externalversions/internalinterfaces"
-	v1 "github.com/cert-manager/cert-manager/pkg/client/listers/acme/v1"
+	acmev1 "github.com/cert-manager/cert-manager/pkg/client/listers/acme/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -36,7 +37,7 @@ import (
 // Challenges.
 type ChallengeInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1.ChallengeLister
+	Lister() acmev1.ChallengeLister
 }
 
 type challengeInformer struct {
@@ -49,42 +50,67 @@ type challengeInformer struct {
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewChallengeInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredChallengeInformer(client, namespace, resyncPeriod, indexers, nil)
+	return NewChallengeInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
 }
 
 // NewFilteredChallengeInformer constructs a new informer for Challenge type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewFilteredChallengeInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return cache.NewSharedIndexInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+	return NewChallengeInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewChallengeInformerWithOptions constructs a new informer for Challenge type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewChallengeInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	gvr := schema.GroupVersionResource{Group: "acme.cert-manager.io", Version: "v1", Resource: "challenges"}
+	identifier := options.InformerName.WithResource(gvr)
+	tweakListOptions := options.TweakListOptions
+	return cache.NewSharedIndexInformerWithOptions(
+		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
+			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.AcmeV1().Challenges(namespace).List(context.TODO(), options)
+				return client.AcmeV1().Challenges(namespace).List(context.Background(), opts)
 			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&opts)
 				}
-				return client.AcmeV1().Challenges(namespace).Watch(context.TODO(), options)
+				return client.AcmeV1().Challenges(namespace).Watch(context.Background(), opts)
 			},
+			ListWithContextFunc: func(ctx context.Context, opts metav1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&opts)
+				}
+				return client.AcmeV1().Challenges(namespace).List(ctx, opts)
+			},
+			WatchFuncWithContext: func(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&opts)
+				}
+				return client.AcmeV1().Challenges(namespace).Watch(ctx, opts)
+			},
+		}, client),
+		&apisacmev1.Challenge{},
+		cache.SharedIndexInformerOptions{
+			ResyncPeriod: options.ResyncPeriod,
+			Indexers:     options.Indexers,
+			Identifier:   identifier,
 		},
-		&acmev1.Challenge{},
-		resyncPeriod,
-		indexers,
 	)
 }
 
 func (f *challengeInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredChallengeInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewChallengeInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *challengeInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&acmev1.Challenge{}, f.defaultInformer)
+	return f.factory.InformerFor(&apisacmev1.Challenge{}, f.defaultInformer)
 }
 
-func (f *challengeInformer) Lister() v1.ChallengeLister {
-	return v1.NewChallengeLister(f.Informer().GetIndexer())
+func (f *challengeInformer) Lister() acmev1.ChallengeLister {
+	return acmev1.NewChallengeLister(f.Informer().GetIndexer())
 }
