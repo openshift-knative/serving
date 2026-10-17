@@ -1,0 +1,12 @@
+diff --git a/config/core/webhooks/resource-validation.yaml b/config/core/webhooks/resource-validation.yaml
+index b49665420..2fdc8e2f8 100644
+--- a/config/core/webhooks/resource-validation.yaml
++++ b/config/core/webhooks/resource-validation.yaml
+@@ -40,7 +40,6 @@ webhooks:
+     operations:
+     - CREATE
+     - UPDATE
+-    - DELETE
+     scope: "*"
+     resources:
+     - metrics
