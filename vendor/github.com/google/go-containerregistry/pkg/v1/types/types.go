@@ -29,6 +29,7 @@ const (
 	OCIRestrictedLayer             MediaType = "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip"
 	OCIUncompressedLayer           MediaType = "application/vnd.oci.image.layer.v1.tar"
 	OCIUncompressedRestrictedLayer MediaType = "application/vnd.oci.image.layer.nondistributable.v1.tar"
+	OCIEmptyJSON                   MediaType = "application/vnd.oci.empty.v1+json"
 
 	DockerManifestSchema1       MediaType = "application/vnd.docker.distribution.manifest.v1+json"
 	DockerManifestSchema1Signed MediaType = "application/vnd.docker.distribution.manifest.v1+prettyjws"
@@ -67,6 +68,31 @@ func (m MediaType) IsImage() bool {
 func (m MediaType) IsIndex() bool {
 	switch m {
 	case OCIImageIndex, DockerManifestList:
+		return true
+	}
+	return false
+}
+
+// IsConfig returns true if the mediaType represents a config, as opposed to something else, like an image.
+func (m MediaType) IsConfig() bool {
+	switch m {
+	case OCIConfigJSON, DockerConfigJSON:
+		return true
+	}
+	return false
+}
+
+func (m MediaType) IsSchema1() bool {
+	switch m {
+	case DockerManifestSchema1, DockerManifestSchema1Signed:
+		return true
+	}
+	return false
+}
+
+func (m MediaType) IsLayer() bool {
+	switch m {
+	case DockerLayer, DockerUncompressedLayer, OCILayer, OCILayerZStd, OCIUncompressedLayer, DockerForeignLayer, OCIRestrictedLayer, OCIUncompressedRestrictedLayer:
 		return true
 	}
 	return false
